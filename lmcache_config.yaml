@@ -1,6 +1,6 @@
-is_rai: true
+is_rai: false
 chunk_size: 1024
 local_disk: "file:///workspace/external/my_disk"
 max_local_disk_size: 50
 local_cpu: true
-max_local_cpu_size: 5
+max_local_cpu_size: 20

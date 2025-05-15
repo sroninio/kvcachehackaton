@@ -2,13 +2,16 @@ import sys
 import os
 import time
 import subprocess
+sys.path.append('/workspace/external')
+import global_vars
+
 
 subprocess.run("rm -rf my_disk*", shell=True)
 
 NUM_GPUS = 1
 BATCH_SIZE = 20
 NUM_ITERATIONS = 100000
-TOTAL_SCALE = 60
+TOTAL_SESSION_IN_BATCH_SIZE = 3
 OUTPUT_TOKENS = 100
 LEN_INPUT_IN_WORDS = 1000
 LEN_WORD = 6
@@ -23,23 +26,17 @@ def get_rand_req(n,l):
     return " ".join([''.join(random.choices(string.ascii_letters, k=l)) for _ in range(n)])
 
 
-import os
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-#os.environ["LMCACHE_LOCAL_CPU"] = "True"
-#os.environ["LMCACHE_MAX_LOCAL_CPU_SIZE"] = "5.0"  # Example: 5 GB
-#os.environ["LMCACHE_CHUNK_SIZE"] = "16"
+
 os.environ["LMCACHE_USE_EXPERIMENTAL"] = "True"
-
-
-#os.environ["LMCACHE_LOCAL_CPU"] = "False"
-#os.environ["LMCACHE_LOCAL_DISK"] = "False"
 os.environ["LMCACHE_CONFIG_FILE"] = os.path.abspath("lmcache_config.yaml")
 
 from vllm import LLM,  SamplingParams
 from vllm.config import KVTransferConfig
 from lmcache.experimental.config import LMCacheEngineConfig
 
+batch_chunks_dict = {}
 
 lmcache_config = LMCacheEngineConfig.from_file("lmcache_config.yaml")
 
@@ -64,14 +61,42 @@ llm = LLM(
     tensor_parallel_size = NUM_GPUS
     #what about pipeline parralelism
 )
-sentences = [get_rand_req(LEN_INPUT_IN_WORDS, LEN_WORD) for _ in range(TOTAL_SCALE)]
 
+
+
+prompts = [[get_rand_req(LEN_INPUT_IN_WORDS, LEN_WORD) for _ in range(BATCH_SIZE)] for k in range(TOTAL_SESSION_IN_BATCH_SIZE)]
+
+prefetch_dict = []
+for i in range(TOTAL_SESSION_IN_BATCH_SIZE):
+    global_vars.chunk_hashes_of_curr_batch = []
+    outputs = llm.generate(prompts[i], sampling_params=sampling_params)
+    prefetch_dict.append(global_vars.chunk_hashes_of_curr_batch)
 
 start_time = time.perf_counter()
+prev_futures = [] #[(future, key), (), ()]
 for i in range(NUM_ITERATIONS):
-    print (f"iteration {i}")
-    prompts = [sentences[j % len(sentences)] for j in range(i * BATCH_SIZE, i * BATCH_SIZE + BATCH_SIZE)]
-    outputs = llm.generate(prompts, sampling_params=sampling_params)
+    print (f"iteration {i}")  
+    global_vars.backend.free_prefetched()
+    d = {}
+    for (future, key) in prev_futures:
+        while not future.done():
+            pass
+        res = future.result()
+        if res:
+            d[key] = future.result()
+        else:
+            print(f"NO MEMORRY FOR PREFETCHING KEY {keys} 555555555555555555555555555555555555555555555555555555555555555555555555555555555555")
+    global_vars.backend.feed_prefetched(d)
+    prev_futures = []
+    for key in prefetch_dict[(i + 1) % TOTAL_SESSION_IN_BATCH_SIZE]:
+        (future, key) = global_vars.backend.prefetch(key)
+        if future:
+            prev_futures.append((future, key))
+    outputs = llm.generate(prompts[i], sampling_params=sampling_params)
+
+
+
+
 end_time = time.perf_counter()
 elapsed = end_time - start_time
 print(outputs[0].outputs[0].text) 

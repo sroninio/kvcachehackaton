@@ -1,6 +1,9 @@
 import asyncio
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Optional
+import sys
+sys.path.append('/workspace/external')
+import global_vars
 
 import torch
 
@@ -45,8 +48,8 @@ def CreateStorageBackends(
         local_disk_backend = LocalDiskBackend_rai(config, loop, memory_allocator,
                                               dst_device, lmcache_worker,
                                               lookup_server)
-        backend_name = str(local_disk_backend)
-        storage_backends[backend_name] = local_disk_backend
+        backend_name = str(local_disk_backend)        
+        storage_backends[backend_name] = local_disk_backend        
 
     # TODO(Jiayi): The hierarchy is fixed for now
     elif config.local_disk and config.max_local_disk_size > 0:
@@ -54,6 +57,8 @@ def CreateStorageBackends(
                                               dst_device, lmcache_worker,
                                               lookup_server)
         backend_name = str(local_disk_backend)
+        print(f"CREATING STORAGE BACKEND")
+        global_vars.backend = local_disk_backend
         storage_backends[backend_name] = local_disk_backend
 
     if config.remote_url is not None:

@@ -1,10 +1,14 @@
 import asyncio
 import os
 import threading
+import sys
+sys.path.append('/workspace/external')
+
+
 from collections import OrderedDict
 from concurrent.futures import Future
 from typing import TYPE_CHECKING, List, Optional
-
+import global_vars 
 import aiofiles
 import torch
 
@@ -44,6 +48,8 @@ class LocalDiskBackend(StorageBackendInterface):
                                DiskCacheMetadata] = OrderedDict()
         self.dst_device = dst_device
 
+        self.prefetched = {} # key->mem_obj
+
         self.disk_lock = threading.Lock()
         assert config.local_disk is not None
         self.path: str = config.local_disk
@@ -78,7 +84,7 @@ class LocalDiskBackend(StorageBackendInterface):
     def contains(self, key: CacheEngineKey) -> bool:
         with self.disk_lock:
             print(f"CCCCCCCCCCCCCCCCC CONTAINS 1  for key {key.to_string()} is_exist = {key in self.dict}")
-            return key in self.dict
+            return (key in self.dict) or (key in self.prefetched)
     '''
     def contains(self, key: CacheEngineKey) -> bool:
         with self.disk_lock:
@@ -136,7 +142,8 @@ class LocalDiskBackend(StorageBackendInterface):
         memory_obj: MemoryObj,
     ) -> Optional[Future]:
         assert memory_obj.tensor is not None
-        print(f"PPPPPPPPPPPPPPPPP PUT 1 returning present for key {key.to_string()}")        
+        print(f"PPPPPPPPPPPPPPPPP PUT 1 returning present for key {key.to_string()}")
+        global_vars.chunk_hashes_of_curr_batch.append(key)        
         # Update cache recency
         evict_keys, put_status = self.evictor.update_on_put(
             self.dict, memory_obj.get_physical_size())
@@ -166,7 +173,6 @@ class LocalDiskBackend(StorageBackendInterface):
         print(f"SSSSSSSSSSSSS NON_BLOCKING 1 returning future for key {key.to_string()}")
 
         self.disk_lock.acquire()
-        key = list(self.dict.keys())[0] #RAI RAI
         if key not in self.dict:
             self.disk_lock.release()
             return None
@@ -185,7 +191,47 @@ class LocalDiskBackend(StorageBackendInterface):
         future = asyncio.run_coroutine_threadsafe(
             self.async_load_bytes_from_disk(path, dtype, shape), self.loop)
         print(f"SSSSSSSSSSSSS 2 returning future for key {key.to_string()}")
-        return future
+        return future 
+
+    def prefetch(
+        self,
+        key: CacheEngineKey,
+    ) -> Optional[Future]:
+        print(f"SSSSSSSSSSSSS NON_BLOCKING 1 returning future for key {key.to_string()}")
+
+        self.disk_lock.acquire()
+        if key not in self.dict:
+            self.disk_lock.release()
+            return (None, None)
+
+        # Update cache recency
+        self.evictor.update_on_hit(key, self.dict)
+
+        path = self.dict[key].path
+        dtype = self.dict[key].dtype
+        shape = self.dict[key].shape
+        self.disk_lock.release()
+        logger.info(f"Prefetching {key} from disk.")
+
+        assert dtype is not None
+        assert shape is not None
+        future = asyncio.run_coroutine_threadsafe(
+            self.async_load_bytes_from_disk(path, dtype, shape), self.loop)
+        print(f"SSSSSSSSSSSSS 2 returning future for key {key.to_string()}")
+        return (future, key)
+
+    def feed_prefetched(self, prefteched):
+        self.disk_lock.acquire()
+        self.prefetched = prefteched
+        self.disk_lock.release()
+
+
+    def free_prefetched(self):
+        self.disk_lock.acquire()
+        for key in self.prefetched:
+            self.memory_allocator.free(self.prefetched[key])
+        self.disk_lock.release()
+
     def get_blocking(
         self,
         key: CacheEngineKey,
@@ -195,6 +241,13 @@ class LocalDiskBackend(StorageBackendInterface):
         """
         print(f"WWWWWWWWWWWWW BLOCKING 1 returning present for key {key.to_string()}")
         self.disk_lock.acquire()
+        if key in self.prefetched:
+            ret = self.prefetched[key]
+            self.disk_lock.release()
+            print("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL SERVING FROM PREFETCHED")
+            return ret
+
+
         if key not in self.dict:
             self.disk_lock.release()
             return None
@@ -212,63 +265,8 @@ class LocalDiskBackend(StorageBackendInterface):
         self.disk_lock.release()
         print(f"WWWWWWWWWWWWW 2 returning present for key {key.to_string()}")
         return memory_obj
-    '''
-    def submit_prefetch_task(
-        self,
-        key: CacheEngineKey,
-    ) -> Optional[Future]:
-        print(f"SSSSSSSSSSSSS NON_BLOCKING 1 returning future for key {key.to_string()}")
-
-        self.disk_lock.acquire()
-        if len(self.dict) == 0:
-            self.disk_lock.release()
-            return None
-        key = list(self.dict.keys())[0] #RAI RAI
-
-        # Update cache recency
-        self.evictor.update_on_hit(key, self.dict)
-
-        path = self.dict[key].path
-        dtype = self.dict[key].dtype
-        shape = self.dict[key].shape
-        self.disk_lock.release()
-        logger.info(f"Prefetching {key} from disk.")
-
-        assert dtype is not None
-        assert shape is not None
-        future = asyncio.run_coroutine_threadsafe(
-            self.async_load_bytes_from_disk(path, dtype, shape), self.loop)
-        print(f"SSSSSSSSSSSSS 2 returning future for key {key.to_string()}")
-        return future
     
-    def get_blocking(
-        self,
-        key: CacheEngineKey,
-    ) -> Optional[MemoryObj]:
-        """
-        Blocking get function.
-        """
-        print(f"WWWWWWWWWWWWW BLOCKING 1 returning present for key {key.to_string()}")
-        self.disk_lock.acquire()
-        if len(self.dict) == 0:
-            self.disk_lock.release()
-            return None
-        key = list(self.dict.keys())[0] #RAI RAI
-
-
-        # Update cache recency
-        self.evictor.update_on_hit(key, self.dict)
-
-        path = self.dict[key].path
-        dtype = self.dict[key].dtype
-        shape = self.dict[key].shape
-        assert dtype is not None
-        assert shape is not None
-        memory_obj = self.load_bytes_from_disk(path, dtype=dtype, shape=shape)
-        self.disk_lock.release()
-        print(f"WWWWWWWWWWWWW 2 returning present for key {key.to_string()}")
-        return memory_obj
-    '''
+    
 
     @_lmcache_nvtx_annotate
     @torch.inference_mode()
@@ -316,7 +314,7 @@ class LocalDiskBackend(StorageBackendInterface):
             return None
         buffer = memory_obj.byte_array
         async with aiofiles.open(path, 'rb') as f:
-            await f.readinto(buffer)
+            await f.readinto(buffer) #we will need to do here pread intead of read, with the block device offset, also add a "header" with our hash to know it this is our info or not
         return memory_obj
 
     # TODO(Jiayi): use memory allocator to redeuce cpu buffer allocation

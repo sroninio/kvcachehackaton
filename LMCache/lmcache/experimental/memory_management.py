@@ -433,7 +433,7 @@ class TensorMemoryAllocator(MemoryAllocatorInterface):
         assert dtype is not None, "dtype must be specified"
 
         # Calculate the size of the tensor
-        raw_size = TensorMemoryAllocator._Compute_raw_size(shape, dtype)
+        raw_size = TensorMemoryAllocator._Compute_raw_size(shape, dtype) # add enoguh bytes to our hash here +
         aligned_size = TensorMemoryAllocator._Compute_aligned_size(raw_size)
 
         # Find the first block that fits the shape

@@ -191,7 +191,7 @@ class StorageManager:
 
         #ever_put = False
         for backend_name, backend in self.storage_backends.items():
-            put_task = backend.submit_put_task(key, memory_obj)
+            put_task = backend.submit_put_task(key, memory_obj) #future
             if not put_task:
                 continue
             while not put_task.done():
