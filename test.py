@@ -75,24 +75,27 @@ for i in range(TOTAL_SESSION_IN_BATCH_SIZE):
 start_time = time.perf_counter()
 prev_futures = [] #[(future, key), (), ()]
 for i in range(NUM_ITERATIONS):
+    
     print (f"iteration {i}")  
     global_vars.backend.free_prefetched()
     d = {}
     for (future, key) in prev_futures:
+        
         while not future.done():
             pass
         res = future.result()
         if res:
             d[key] = future.result()
         else:
-            print(f"NO MEMORRY FOR PREFETCHING KEY {keys} 555555555555555555555555555555555555555555555555555555555555555555555555555555555555")
+            print(f"NO MEMORRY FOR PREFETCHING KEY {key} 555555555555555555555555555555555555555555555555555555555555555555555555555555555555")
     global_vars.backend.feed_prefetched(d)
     prev_futures = []
     for key in prefetch_dict[(i + 1) % TOTAL_SESSION_IN_BATCH_SIZE]:
         (future, key) = global_vars.backend.prefetch(key)
         if future:
             prev_futures.append((future, key))
-    outputs = llm.generate(prompts[i], sampling_params=sampling_params)
+    
+    outputs = llm.generate(prompts[i % TOTAL_SESSION_IN_BATCH_SIZE], sampling_params=sampling_params)
 
 
 
