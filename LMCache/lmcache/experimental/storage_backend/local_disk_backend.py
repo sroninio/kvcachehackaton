@@ -4,6 +4,12 @@ import threading
 import sys
 sys.path.append('/workspace/external')
 
+# ANSI escape codes for colors
+BRIGHT_GREEN = "\033[92m"
+BRIGHT_BLUE = "\033[94m"
+BRIGHT_YELLOW = "\033[93m"
+RESET = "\033[0m"
+BRIGHT_RED = "\033[91m"
 
 from collections import OrderedDict
 from concurrent.futures import Future
@@ -31,6 +37,10 @@ if TYPE_CHECKING:
 
 logger = init_logger(__name__)
 
+BRIGHT_GREEN = "\033[92m"
+BRIGHT_BLUE = "\033[94m"
+BRIGHT_YELLOW = "\033[93m"
+RESET = "\033[0m"
 
 class LocalDiskBackend(StorageBackendInterface):
 
@@ -43,7 +53,7 @@ class LocalDiskBackend(StorageBackendInterface):
         lmcache_worker: Optional["LMCacheWorker"] = None,
         lookup_server: Optional[LookupServerInterface] = None,
     ):
-        print("IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII")
+        # print(f"{BRIGHT_YELLOW}=========== LocalDiskBackend::init ==========={RESET}")
         self.dict: OrderedDict[CacheEngineKey,
                                DiskCacheMetadata] = OrderedDict()
         self.dst_device = dst_device
@@ -83,7 +93,7 @@ class LocalDiskBackend(StorageBackendInterface):
 
     def contains(self, key: CacheEngineKey) -> bool:
         with self.disk_lock:
-            print(f"CCCCCCCCCCCCCCCCC CONTAINS 1  for key {key.to_string()} is_exist = {key in self.dict}")
+            print(f"{BRIGHT_YELLOW}LocalDiskBackend::contains called for key {key.to_string()} is_exist = {key in self.dict}{RESET}")
             return (key in self.dict) or (key in self.prefetched)
     '''
     def contains(self, key: CacheEngineKey) -> bool:
@@ -142,7 +152,7 @@ class LocalDiskBackend(StorageBackendInterface):
         memory_obj: MemoryObj,
     ) -> Optional[Future]:
         assert memory_obj.tensor is not None
-        print(f"PPPPPPPPPPPPPPPPP PUT 1 returning present for key {key.to_string()}")
+        # print(f"{BRIGHT_YELLOW}LocalDiskBackend::submit_put_task called for key {key.to_string()}{RESET}")
         global_vars.chunk_hashes_of_curr_batch.append(key)        
         # Update cache recency
         evict_keys, put_status = self.evictor.update_on_put(
@@ -163,14 +173,14 @@ class LocalDiskBackend(StorageBackendInterface):
 
         future = asyncio.run_coroutine_threadsafe(
             self.async_save_bytes_to_disk(key, memory_obj), self.loop)
-        print(f"PPPPPPPPPPPPPPPPP 2 returning present for key {key.to_string()}")
+        # print(f"{BRIGHT_YELLOW}LocalDiskBackend::submit_put_task returning future for key {key.to_string()}{RESET}")
         return future
     
     def submit_prefetch_task(
         self,
         key: CacheEngineKey,
     ) -> Optional[Future]:
-        print(f"SSSSSSSSSSSSS NON_BLOCKING 1 returning future for key {key.to_string()}")
+        # print(f"{BRIGHT_YELLOW}LocalDiskBackend::submit_prefetch_task called for key {key.to_string()}{RESET}")
 
         self.disk_lock.acquire()
         if key not in self.dict:
@@ -190,14 +200,14 @@ class LocalDiskBackend(StorageBackendInterface):
         assert shape is not None
         future = asyncio.run_coroutine_threadsafe(
             self.async_load_bytes_from_disk(path, dtype, shape), self.loop)
-        print(f"SSSSSSSSSSSSS 2 returning future for key {key.to_string()}")
+        # print(f"{BRIGHT_YELLOW}LocalDiskBackend::submit_prefetch_task returning future for key {key.to_string()}{RESET}")
         return future 
 
     def prefetch(
         self,
         key: CacheEngineKey,
     ) -> Optional[Future]:
-        print(f"SSSSSSSSSSSSS NON_BLOCKING 1 returning future for key {key.to_string()}")
+        print(f"{BRIGHT_YELLOW}LocalDiskBackend::prefetch called for key {key.to_string()}{RESET}")
 
         self.disk_lock.acquire()
         if key not in self.dict:
@@ -211,13 +221,13 @@ class LocalDiskBackend(StorageBackendInterface):
         dtype = self.dict[key].dtype
         shape = self.dict[key].shape
         self.disk_lock.release()
-        logger.info(f"Prefetching {key} from disk.")
+        # logger.info(f"Prefetching {key} from disk.")
 
         assert dtype is not None
         assert shape is not None
         future = asyncio.run_coroutine_threadsafe(
             self.async_load_bytes_from_disk(path, dtype, shape), self.loop)
-        print(f"SSSSSSSSSSSSS 2 returning future for key {key.to_string()}")
+        print(f"{BRIGHT_YELLOW}LocalDiskBackend::prefetch returning future for key {key.to_string()}{RESET}")
         return (future, key)
 
     def feed_prefetched(self, prefteched):
@@ -239,16 +249,17 @@ class LocalDiskBackend(StorageBackendInterface):
         """
         Blocking get function.
         """
-        print(f"WWWWWWWWWWWWW BLOCKING 1 returning present for key {key.to_string()}")
+        print(f"{BRIGHT_YELLOW}LocalDiskBackend::get_blocking called for key {key.to_string()}{RESET}")
         self.disk_lock.acquire()
         if key in self.prefetched:
             ret = self.prefetched[key]
             self.disk_lock.release()
-            print("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL SERVING FROM PREFETCHED")
+            print(f"{BRIGHT_GREEN}LocalDiskBackend::get_blocking serving from prefetched KV's{RESET}")
             return ret
 
 
         if key not in self.dict:
+            print(f"{BRIGHT_RED}LocalDiskBackend::get_blocking key not in dict{RESET}")
             self.disk_lock.release()
             return None
         
@@ -263,7 +274,7 @@ class LocalDiskBackend(StorageBackendInterface):
         assert shape is not None
         memory_obj = self.load_bytes_from_disk(path, dtype=dtype, shape=shape)
         self.disk_lock.release()
-        print(f"WWWWWWWWWWWWW 2 returning present for key {key.to_string()}")
+        print(f"{BRIGHT_YELLOW}LocalDiskBackend::get_blocking returning present for key {key.to_string()}{RESET}")
         return memory_obj
     
     

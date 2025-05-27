@@ -441,7 +441,7 @@ class TensorMemoryAllocator(MemoryAllocatorInterface):
             if block.size >= aligned_size:
                 break
         else:
-            #import ipdb;ipdb.set_trace()
+            # import ipdb;ipdb.set_trace()
             logger.warning(f"Failed to allocate memory for "
                            f"tensor({shape}, {dtype}) because "
                            "no memory is available")

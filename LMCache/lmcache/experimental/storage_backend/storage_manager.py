@@ -41,12 +41,20 @@ if TYPE_CHECKING:
 logger = init_logger(__name__)
 
 
+# ANSI escape codes for colors
+BRIGHT_GREEN = "\033[92m"
+BRIGHT_BLUE = "\033[94m"
+BRIGHT_YELLOW = "\033[93m"
+RESET = "\033[0m"
+
+
 # TODO: extend this class to implement caching policies and eviction policies
 class StorageManager:
     """
     The StorageManager is responsible for managing the storage backends.
     """
-
+    list_of_put_tasks_futures = []
+    
     def __init__(self,
                  config: LMCacheEngineConfig,
                  metadata: LMCacheEngineMetadata,
@@ -55,8 +63,8 @@ class StorageManager:
                  lookup_server: Optional[LookupServerInterface] = None):
         self.memory_allocator = allocator
         self.hot_cache: OrderedDict[CacheEngineKey, MemoryObj] = OrderedDict()
-        #self.use_hot = config.local_cpu
-        self.use_hot = False
+        self.use_hot = config.local_cpu
+        # self.use_hot = False
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.loop.run_forever)
         self.thread.start()
@@ -95,7 +103,14 @@ class StorageManager:
         Allocate memory object with memory allocator.
         Use LRU evictor if eviction is enabled.
         """
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        for (mem_obj, future) in self.list_of_put_tasks_futures:
+            if future.done():
+                print("=-=-=-=-=-=-=-=-=-=-=-=- remove from list of put tasks futures=-=-=-=-=-=-=-=-=-=-=-=-")
+                self.list_of_put_tasks_futures.remove((mem_obj, future))
+                self.memory_allocator.ref_count_down(mem_obj)
+
+
+        print(f"{BRIGHT_YELLOW}StorageManager::allocate called{RESET}")
         self.manager_lock.acquire()
         memory_obj = self.memory_allocator.allocate(shape, dtype)
         if not eviction or memory_obj is not None:
@@ -110,9 +125,9 @@ class StorageManager:
             # If the ref_count > 1, we cannot evict it as the hot cache
             # might be used as buffers by other storage backends
             if self.memory_allocator.get_ref_count(self.hot_cache[evict_key]) > 1:
-                print ("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ")
+                print (f"{BRIGHT_YELLOW}the refrence count of the hot cache entry is greater than 1{RESET}")
                 continue
-            print ("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+            print (f"{BRIGHT_YELLOW}the refrence count of the hot cache entry is less than 1{RESET}")
             evict_keys.append(evict_key)
             self.memory_allocator.ref_count_down(self.hot_cache[evict_key])
             memory_obj = self.memory_allocator.allocate(shape, dtype)
@@ -159,8 +174,9 @@ class StorageManager:
         storage manager) or has been stored (handled by storage backend).
         """
         self.manager_lock.acquire()
+        print(f"StorgaeManager::put called for data in lenght {memory_obj.get_size()} and {memory_obj.get_shape()}")
         print(f"STORAGE MANAGER::PUT  KEY={key.to_string()}")
-
+        import ipdb; ipdb.set_trace()
         if self.use_hot:
             # During overwrite, we need to free the old memory object
             # to avoid memory leak.
@@ -195,9 +211,9 @@ class StorageManager:
             if not put_task:
                 continue
             while not put_task.done():
-                pass
+                 pass
             self.memory_allocator.ref_count_down(memory_obj)
-
+            # self.list_of_put_tasks_futures.append((memory_obj, put_task))
 
         self.manager_lock.acquire()
         self.memory_allocator.ref_count_down(memory_obj)
@@ -286,7 +302,7 @@ class StorageManager:
         self.manager_lock.acquire()
         prefetch_task = self.prefetch_tasks.get(key, None)
         self.manager_lock.release()
-        print(f"STORAGE MANAGER::GET   KEY={key.to_string()}")
+        print(f"{BRIGHT_YELLOW}StorageManager::get called for key {key.to_string()}{RESET}")
 
         # Wait until prefetch task finishes
         # Here, it is assumed all prefetch tasks load the memoryobj to
@@ -308,6 +324,7 @@ class StorageManager:
             self.memory_allocator.ref_count_up(memory_obj)
             self.hot_cache.move_to_end(key)
             self.manager_lock.release()
+            print(f"{BRIGHT_YELLOW}StorageManager::get found in hot cache{RESET}")
             return memory_obj
 
         self.manager_lock.release()
@@ -322,8 +339,11 @@ class StorageManager:
             memory_obj = backend.get_blocking(key)
             if memory_obj is not None:
                 self._update_hot_cache(key, memory_obj)
+                print(f"{BRIGHT_YELLOW}StorageManager::get found in storage backend {backend_name}{RESET}")
                 return memory_obj
 
+
+        print(f"{BRIGHT_YELLOW}StorageManager::get not found in storage backends{RESET}")
         return None
 
     # TODO(Jiayi): we need to consider eviction in prefetch
@@ -371,7 +391,7 @@ class StorageManager:
 
         # Call contains for each backend. Find the nearest cache        
         self.manager_lock.acquire()
-        print(f"STORAGE MANAGER::PREFETCH   KEY={key.to_string()}")
+        print(f"{BRIGHT_YELLOW}StorageManager::prefetch called for key {key.to_string()}{RESET}")
 
         if key in self.hot_cache:
             self.manager_lock.release()
@@ -412,7 +432,7 @@ class StorageManager:
         return: True if the key exists in the specified storage backends.
         """
         with self.manager_lock:
-            print(f"STORAGE MANAGER::CONTAINS SEARCH RANGE{search_range} KEY={key.to_string()}")
+            print(f"{BRIGHT_YELLOW}StorageManager::contains called for key {key.to_string()} with search range {search_range}{RESET}")
             if search_range is None or "Hot" in search_range:
                 if key in self.hot_cache:
                     return True
@@ -448,7 +468,7 @@ class StorageManager:
 
         num_removed = 0
         with self.manager_lock:
-            print(f"STORAGE MANAGER::REMOVE  KEY={key.to_string()}")
+            print(f"{BRIGHT_YELLOW}StorageManager::remove called for key {key.to_string()}{RESET}")
             if locations is None or "Hot" in locations:
                 if self.use_hot and key in self.hot_cache:
                     memory_obj = self.hot_cache[key]

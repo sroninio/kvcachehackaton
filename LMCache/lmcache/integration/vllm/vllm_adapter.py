@@ -79,6 +79,8 @@ def init_lmcache_engine(
     if LMCacheEngineBuilder.get(ENGINE_NAME) is not None:
         return None
 
+    # import pdb; pdb.set_trace()
+
     config = lmcache_get_config()
     assert isinstance(config, LMCacheEngineConfig), \
         "LMCache experimental configuration is should be passed."

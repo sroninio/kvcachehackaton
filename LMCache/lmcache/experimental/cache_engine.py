@@ -41,6 +41,14 @@ from lmcache.utils import CacheEngineKey, _lmcache_nvtx_annotate
 logger = init_logger(__name__)
 
 
+
+
+# ANSI escape codes for colors
+BRIGHT_GREEN = "\033[92m"
+BRIGHT_BLUE = "\033[94m"
+BRIGHT_YELLOW = "\033[93m"
+RESET = "\033[0m"
+
 class CacheEngineEndSignal:
     pass
 
@@ -70,6 +78,7 @@ class LMCacheEngine:
         token_database: TokenDatabase,
         gpu_connector: GPUConnectorInterface,
     ):
+        print(f"LMCacheEngine::__init__")
         logger.info(f"Creating LMCacheEngine with config: {config}")
         self.config = config
         self.metadata = metadata
@@ -218,6 +227,13 @@ class LMCacheEngine:
         :raises: ValueError if the number of Falses in the mask is not a 
             multiple of the chunk size.
         """
+        # import pdb; pdb.set_trace()
+
+        print(f"LMCacheEngine::store number of tokens to store: {len(tokens)}")
+        print(f"LMCacheEngine::store mask sum is: {torch.sum(mask).item()}")
+
+        # global_vars.total_tokens += len(tokens)
+        
         # FIXME(ApostaC): A HACK for distributed storage manager
         if self.use_distributed_storage_manager:
             self.store_distributed(tokens, mask, **kwargs)
@@ -283,10 +299,14 @@ class LMCacheEngine:
         :raises: ValueError if the number of Falses in the mask is not a 
             multiple of the chunk size.
         """
+        
         if mask is not None:
             num_required_tokens = torch.sum(mask).item()
         else:
             num_required_tokens = len(tokens)
+        
+        print(f"LMCacheEngine::retrieve number of tokens to retrieve: {num_required_tokens}")
+        
         monitor_req_id = self.stats_monitor.on_retrieve_request(
             num_required_tokens)
 
@@ -339,6 +359,9 @@ class LMCacheEngine:
         """Launch the prefetching process in the storage manager to load the 
         KV to the local CPU memory
         """
+        
+        print(f"LMCacheEngine::prefetch number of tokens to prefetch: {len(tokens)}")
+
         for start, end, key in self.token_database.process_tokens(
                 tokens, mask):
             assert isinstance(key, CacheEngineKey)
@@ -361,6 +384,9 @@ class LMCacheEngine:
 
         :return: An int indicating how many prefix tokens are cached.
         """
+        print(f"LMCacheEngine::lookup number of tokens to lookup: {len(tokens)}")
+
+
         end = 0
         for start, end, key in self.token_database.process_tokens(tokens):
             assert isinstance(key, CacheEngineKey)

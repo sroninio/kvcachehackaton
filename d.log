@@ -1,0 +1,390 @@
+INFO 05-27 05:01:31 [__init__.py:239] Automatically detected platform cuda.
+INFO 05-27 05:01:37 [config.py:689] This model supports multiple tasks: {'score', 'reward', 'embed', 'generate', 'classify'}. Defaulting to 'generate'.
+WARNING 05-27 05:01:37 [arg_utils.py:1731] --kv-transfer-config is not supported by the V1 Engine. Falling back to V0. 
+WARNING 05-27 05:01:37 [arg_utils.py:1592] Chunked prefill is enabled by default for models with max_model_len > 32K. Chunked prefill might not work with some features or models. If you encounter any issues, please disable by launching with --enable-chunked-prefill=False.
+INFO 05-27 05:01:37 [config.py:1901] Chunked prefill is enabled with max_num_batched_tokens=32768.
+INFO 05-27 05:01:37 [llm_engine.py:243] Initializing a V0 LLM engine (v0.8.4) with config: model='/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct', speculative_config=None, tokenizer='/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, override_neuron_config=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=100000, download_dir=None, load_format=LoadFormat.AUTO, tensor_parallel_size=1, pipeline_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=False, kv_cache_dtype=auto,  device_config=cuda, decoding_config=DecodingConfig(guided_decoding_backend='auto', reasoning_backend=None), observability_config=ObservabilityConfig(show_hidden_metrics=False, otlp_traces_endpoint=None, collect_model_forward_time=False, collect_model_execute_time=False), seed=None, served_model_name=/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct, num_scheduler_steps=1, multi_step_stream_outputs=True, enable_prefix_caching=True, chunked_prefill_enabled=True, use_async_output_proc=True, disable_mm_preprocessor_cache=False, mm_processor_kwargs=None, pooler_config=None, compilation_config={"splitting_ops":[],"compile_sizes":[],"cudagraph_capture_sizes":[256,248,240,232,224,216,208,200,192,184,176,168,160,152,144,136,128,120,112,104,96,88,80,72,64,56,48,40,32,24,16,8,4,2,1],"max_capture_size":256}, use_cached_outputs=False, 
+INFO 05-27 05:01:38 [cuda.py:292] Using Flash Attention backend.
+INFO 05-27 05:01:41 [parallel_state.py:959] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0
+INFO 05-27 05:01:41 [lmcache_connector.py:43] Initializing LMCacheConfig under kv_transfer_config kv_connector='LMCacheConnector' kv_buffer_device='cuda' kv_buffer_size=1000000000.0 kv_role='kv_both' kv_rank=None kv_parallel_size=1 kv_ip='127.0.0.1' kv_port=14579 kv_connector_extra_config={}
+LMCacheEngine::__init__
+INFO 05-27 05:02:20 [model_runner.py:1110] Starting to load model /workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct...
+INFO 05-27 05:02:25 [loader.py:458] Loading weights took 5.33 seconds
+INFO 05-27 05:02:25 [model_runner.py:1146] Model loading took 14.9889 GiB and 5.451324 seconds
+INFO 05-27 05:02:27 [worker.py:267] Memory profiling takes 1.12 seconds
+INFO 05-27 05:02:27 [worker.py:267] the current vLLM instance can use total_gpu_memory (79.11GiB) x gpu_memory_utilization (0.60) = 47.47GiB
+INFO 05-27 05:02:27 [worker.py:267] model weights take 14.99GiB; non_torch_memory takes 0.47GiB; PyTorch activation peak memory takes 3.41GiB; the rest of the memory reserved for KV Cache is 28.60GiB.
+INFO 05-27 05:02:27 [executor_base.py:112] # cuda blocks: 14642, # CPU blocks: 2048
+INFO 05-27 05:02:27 [executor_base.py:117] Maximum concurrency for 100000 tokens per request: 2.34x
+INFO 05-27 05:02:28 [model_runner.py:1456] Capturing cudagraphs for decoding. This may lead to unexpected consequences if the model is not static. To run the model in eager mode, set 'enforce_eager=True' or use '--enforce-eager' in the CLI. If out-of-memory error occurs during cudagraph capture, consider decreasing `gpu_memory_utilization` or switching to eager mode. You can also reduce the `max_num_seqs` as needed to decrease memory usage.
+INFO 05-27 05:02:37 [model_runner.py:1598] Graph capturing finished in 9 secs, took 0.26 GiB
+INFO 05-27 05:02:37 [llm_engine.py:449] init engine (profile, create kv cache, warmup model) took 11.34 seconds
+[92mprompt has 82486 tokens[0m
+[92mprompt has 82572 tokens[0m
+[92mprompt has 82555 tokens[0m
+[92mprompt has 82579 tokens[0m
+[92mprompt has 82459 tokens[0m
+[92mprompt has 82598 tokens[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+LMCacheEngine::store number of tokens to store: 32768
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163 with search range None[0m
+LMCacheEngine::store number of tokens to store: 65536
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163 with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163
+LMCacheEngine::lookup number of tokens to lookup: 82486
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19fb044456ac83dd64f14e9e7a4f9a1c16ec736b889ed4bfe4a3a1eda689985e with search range None[0m
+LMCacheEngine::store number of tokens to store: 82486
+LMCacheEngine::store mask sum is: 16950
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19fb044456ac83dd64f14e9e7a4f9a1c16ec736b889ed4bfe4a3a1eda689985e with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 2221670400 and torch.Size([2, 32, 16950, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19fb044456ac83dd64f14e9e7a4f9a1c16ec736b889ed4bfe4a3a1eda689985e
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+LMCacheEngine::store number of tokens to store: 32768
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7 with search range None[0m
+LMCacheEngine::store number of tokens to store: 65536
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7 with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7
+LMCacheEngine::lookup number of tokens to lookup: 82572
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@dc0430840a4ae3eeeb7d714e3622d23ca87387d6ce3deb2cc69f12b565c240dd with search range None[0m
+LMCacheEngine::store number of tokens to store: 82572
+LMCacheEngine::store mask sum is: 17036
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@dc0430840a4ae3eeeb7d714e3622d23ca87387d6ce3deb2cc69f12b565c240dd with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 2232942592 and torch.Size([2, 32, 17036, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@dc0430840a4ae3eeeb7d714e3622d23ca87387d6ce3deb2cc69f12b565c240dd
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+LMCacheEngine::store number of tokens to store: 32768
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943 with search range None[0m
+LMCacheEngine::store number of tokens to store: 65536
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943 with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943
+LMCacheEngine::lookup number of tokens to lookup: 82555
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dde808032e18c7c6213d468c8ef74afe8f75b021590d5ac44ba99c1e9e4b7cf with search range None[0m
+LMCacheEngine::store number of tokens to store: 82555
+LMCacheEngine::store mask sum is: 17019
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dde808032e18c7c6213d468c8ef74afe8f75b021590d5ac44ba99c1e9e4b7cf with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 2230714368 and torch.Size([2, 32, 17019, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dde808032e18c7c6213d468c8ef74afe8f75b021590d5ac44ba99c1e9e4b7cf
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+LMCacheEngine::store number of tokens to store: 32768
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62 with search range None[0m
+LMCacheEngine::store number of tokens to store: 65536
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62 with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62
+LMCacheEngine::lookup number of tokens to lookup: 82579
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@535150647246aacbefe80346b8a6023f4fa0bdbbbebde52c381d5bfde4bc7783 with search range None[0m
+LMCacheEngine::store number of tokens to store: 82579
+LMCacheEngine::store mask sum is: 17043
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@535150647246aacbefe80346b8a6023f4fa0bdbbbebde52c381d5bfde4bc7783 with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 2233860096 and torch.Size([2, 32, 17043, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@535150647246aacbefe80346b8a6023f4fa0bdbbbebde52c381d5bfde4bc7783
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+LMCacheEngine::store number of tokens to store: 32768
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c with search range None[0m
+LMCacheEngine::store number of tokens to store: 65536
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c
+LMCacheEngine::lookup number of tokens to lookup: 82459
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19278fc551f48017fbd184813b675436eef535685a0338771976e589de90dee4 with search range None[0m
+LMCacheEngine::store number of tokens to store: 82459
+LMCacheEngine::store mask sum is: 16923
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19278fc551f48017fbd184813b675436eef535685a0338771976e589de90dee4 with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 2218131456 and torch.Size([2, 32, 16923, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19278fc551f48017fbd184813b675436eef535685a0338771976e589de90dee4
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb with search range None[0m
+LMCacheEngine::store number of tokens to store: 32768
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@09ba4b51a4e284be3ddadc50a80adc74b903955a0db60a7e669869b1d2091fd6[0m
+[93mStorageManager::get not found in storage backends[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@09ba4b51a4e284be3ddadc50a80adc74b903955a0db60a7e669869b1d2091fd6 with search range None[0m
+LMCacheEngine::store number of tokens to store: 65536
+LMCacheEngine::store mask sum is: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@09ba4b51a4e284be3ddadc50a80adc74b903955a0db60a7e669869b1d2091fd6 with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 4294967296 and torch.Size([2, 32, 32768, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@09ba4b51a4e284be3ddadc50a80adc74b903955a0db60a7e669869b1d2091fd6
+LMCacheEngine::lookup number of tokens to lookup: 82598
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@09ba4b51a4e284be3ddadc50a80adc74b903955a0db60a7e669869b1d2091fd6 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@b0effa5de4bb9ed302b9947debbb6cc745acd8846c1a7e73cae688e51b7d14db with search range None[0m
+LMCacheEngine::store number of tokens to store: 82598
+LMCacheEngine::store mask sum is: 17062
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@b0effa5de4bb9ed302b9947debbb6cc745acd8846c1a7e73cae688e51b7d14db with search range None[0m
+[93mStorageManager::allocate called[0m
+StorgaeManager::put called for data in lenght 2236350464 and torch.Size([2, 32, 17062, 1024])
+STORAGE MANAGER::PUT  KEY=vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@b0effa5de4bb9ed302b9947debbb6cc745acd8846c1a7e73cae688e51b7d14db
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163 with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82486
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19fb044456ac83dd64f14e9e7a4f9a1c16ec736b889ed4bfe4a3a1eda689985e with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7 with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82572
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@dc0430840a4ae3eeeb7d714e3622d23ca87387d6ce3deb2cc69f12b565c240dd with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943 with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82555
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dde808032e18c7c6213d468c8ef74afe8f75b021590d5ac44ba99c1e9e4b7cf with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62 with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82579
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@535150647246aacbefe80346b8a6023f4fa0bdbbbebde52c381d5bfde4bc7783 with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82459
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19278fc551f48017fbd184813b675436eef535685a0338771976e589de90dee4 with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@09ba4b51a4e284be3ddadc50a80adc74b903955a0db60a7e669869b1d2091fd6[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@09ba4b51a4e284be3ddadc50a80adc74b903955a0db60a7e669869b1d2091fd6 with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82598
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@e451c021396c41134e5168dd5b8081b2a44e48a1aa72ebaf4cf14f66d95be0fb with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@09ba4b51a4e284be3ddadc50a80adc74b903955a0db60a7e669869b1d2091fd6 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@b0effa5de4bb9ed302b9947debbb6cc745acd8846c1a7e73cae688e51b7d14db with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163 with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82486
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@357d3a3c4855f87bbb61fa47d056723c4f6a61dfbbe4dc20185573eda3963550 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@5704546249ed8549202881deadedee723e291036102495391ef2a857309ea163 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19fb044456ac83dd64f14e9e7a4f9a1c16ec736b889ed4bfe4a3a1eda689985e with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7 with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82572
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@4c049e24c377e8d86f09be57d18d8fb2fab4af56e2a281486f4bb7c23a41c84a with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@a1b73a1eea9c502278986188d4f5e9f855fce065adcc5d8c2eac686c716ac6f7 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@dc0430840a4ae3eeeb7d714e3622d23ca87387d6ce3deb2cc69f12b565c240dd with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943 with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82555
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@ccec9bd366a01d1147dbbdc9abda625dcbfafeacb0b30bb3e259040632d6ce6c with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@f995883c4719b9812648435d69fdc698086116075c3cb6452121fc12878ae943 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dde808032e18c7c6213d468c8ef74afe8f75b021590d5ac44ba99c1e9e4b7cf with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62 with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82579
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d6be9a8b3a7bec9cfbcfb641d151889520f3d1016108316955f7d46fa20c2323 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@9dc1532cc399d3d67f01ad2726632fa922eb7f7873db8b4e0f762687cb3f6e62 with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@535150647246aacbefe80346b8a6023f4fa0bdbbbebde52c381d5bfde4bc7783 with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 32768
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+LMCacheEngine::retrieve number of tokens to retrieve: 32768
+[93mStorageManager::get called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c[0m
+[93mStorageManager::get found in hot cache[0m
+LMCacheEngine::lookup number of tokens to lookup: 65536
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c with search range None[0m
+LMCacheEngine::lookup number of tokens to lookup: 82459
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@d69cd89d7311fcbbf07f1b5232172e5f9c58483b3c178edc8e1e8c9f68b5f8de with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@523c0bb470e6cb5d12c7644d21e33718129512c9bfb7d2c0f2bc806a8ad9b70c with search range None[0m
+[93mStorageManager::contains called for key vllm@/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct@1@0@19278fc551f48017fbd184813b675436eef535685a0338771976e589de90dee4 with search range None[0m
