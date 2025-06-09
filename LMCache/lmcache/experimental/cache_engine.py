@@ -305,7 +305,7 @@ class LMCacheEngine:
         else:
             num_required_tokens = len(tokens)
         
-        print(f"LMCacheEngine::retrieve number of tokens to retrieve: {num_required_tokens}")
+        print(f"LMCacheEngine::retrieve total tokens {len(tokens)} number of tokens to retrieve: {num_required_tokens}")
         
         monitor_req_id = self.stats_monitor.on_retrieve_request(
             num_required_tokens)
@@ -334,6 +334,7 @@ class LMCacheEngine:
             # cpu tensor for the sake of performance.
             # For example, disk->gpu is faster than disk->cpu->gpu.
             # RDMA is another example.
+            #breakpoint()
             self.gpu_connector.to_gpu(memory_obj, start, end, **kwargs)
             self.memory_allocator.ref_count_down(memory_obj)
 
@@ -344,6 +345,7 @@ class LMCacheEngine:
                 self.storage_manager.remove(key)
 
         retrieved_tokens = torch.sum(ret_mask)
+
         self.stats_monitor.on_retrieve_finished(monitor_req_id,
                                                 torch.sum(ret_mask))
         logger.debug(f"Retrieved {retrieved_tokens} "
@@ -391,7 +393,9 @@ class LMCacheEngine:
         for start, end, key in self.token_database.process_tokens(tokens):
             assert isinstance(key, CacheEngineKey)
             if not self.storage_manager.contains(key, search_range):
+                print(f"LMCacheEngine::lookup returned {start}")
                 return start
+        print(f"LMCacheEngine::lookup returned {end}")
         return end
 
     def clear(

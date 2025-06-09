@@ -2,6 +2,7 @@ import abc
 from typing import List, Optional, Tuple
 
 import torch
+import time
 
 import lmcache.c_ops as lmc_ops
 from lmcache.experimental.memory_management import MemoryFormat, MemoryObj
@@ -260,6 +261,7 @@ class VLLMPagedMemGPUConnectorV2(GPUConnectorInterface):
         - chunk_size: The MAX size of the chunk to be copied to GPU.
         - dtype: The data type of the intermediate buffer.
         """
+        self.total_copy_time = 0
         self.hidden_dim_size = hidden_dim_size
         self.num_layers = num_layers
         self.kv_cache_pointers = torch.empty(num_layers,
@@ -364,12 +366,14 @@ class VLLMPagedMemGPUConnectorV2(GPUConnectorInterface):
         #        self.kv_cache_pointers,
         #        slot_mapping[start:end],
         #        kvcaches[0].device, self.page_buffer_size, False)
-
+        start_time = time.perf_counter()
         lmc_ops.multi_layer_kv_transfer(memory_obj.tensor,
                                         self.kv_cache_pointers,
                                         slot_mapping[start:end],
                                         kvcaches[0].device,
                                         self.page_buffer_size, False)
+        self.total_copy_time += (time.perf_counter() - start_time)
+        print(f"TOTAL COPY TIME = {self.total_copy_time}")
 
     @_lmcache_nvtx_annotate
     def from_gpu(self, memory_obj: MemoryObj, start: int, end: int, **kwargs):

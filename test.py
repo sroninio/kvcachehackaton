@@ -8,26 +8,37 @@ import string
 import yaml
 
 
-
-#SIMULATION PARAMETERS
-NUM_GPUS = 1
-BATCH_SIZE = 1
-NUM_ITERATIONS = 11
-TOTAL_SESSION_IN_BATCH_SIZE = 6
-OUTPUT_TOKENS = 10
-LEN_INPUT_IN_WORDS = 20000
-LEN_WORD = 6
-WITH_STORAGE = False
-
 #CONFIGURATION PARAMETERS
 WITH_RAI = False
-CHUNK_SIZE = 32768
 MAX_LOCAL_CPU_SIZE = 100
 MAX_LOCAL_DISK_SIZE = 300
 LOCAL_CPU = True
 LOCAL_DISK = None #"file:///tmp/rai/"
+CHUNK_SIZE = 32 * 1024
+LMCACHE_CHUNK_SIZE =  32 * 1024 
 
-LMCACHE_CHUNK_SIZE = 32768
+
+#SIMULATION PARAMETERS
+TOKEN_KV_SIZE = 128 * 1024
+KV_HBM_PER_GPU = 30 * 1024 * 1024 * 1024
+INPUT_TOKENS = CHUNK_SIZE 
+OUTPUT_TOKENS = 1
+LEN_WORD = 6
+NUM_GPUS = 1
+BATCH_SIZE = 1
+NUM_ITERATIONS = 10
+TOTAL_SESSIONS = KV_HBM_PER_GPU * NUM_GPUS * 2 // ((INPUT_TOKENS + OUTPUT_TOKENS) * TOKEN_KV_SIZE)
+#TOTAL_SESSIONS = 4
+TOTAL_SESSION_IN_BATCH_SIZE = TOTAL_SESSIONS // BATCH_SIZE
+WITH_STORAGE = False
+
+
+
+
+
+
+
+
 
 
 # Read the existing config
@@ -57,10 +68,27 @@ BRIGHT_BLUE = "\033[94m"
 BRIGHT_YELLOW = "\033[93m"
 RESET = "\033[0m"
 
-
-
-def get_rand_req(n,l):
+def count_tokens(text, tokenizer):
+    tokens = tokenizer.encode(text)
+    return len(tokens)
+'''
+def get_rand_req(n,l,tokenizer):
     return " ".join([''.join(random.choices(string.ascii_letters, k=l)) for _ in range(n)])
+
+'''
+def get_rand_req(n,l, tokenizer):
+    print("Starting creating rand request")
+    req = "hi"
+    while count_tokens(req, tokenizer) < (n - 1000):
+        req += " ".join([''.join(random.choices(string.ascii_letters, k=l)) for _ in range(240)])
+    while count_tokens(req, tokenizer) < n:
+        req += "hi"
+    if count_tokens(req, tokenizer) != n:
+        raise Exception("couldnt generate good input sequence")
+    print("Finished creating rand request")
+    return req
+
+    
 
 import nltk
 from nltk.corpus import words
@@ -123,11 +151,9 @@ llm = LLM(
 
 tokenizer = llm.get_tokenizer()
 
-def count_tokens(text, tokenizer):
-    tokens = tokenizer.encode(text)
-    return len(tokens)
 
-prompts = [[get_rand_req(LEN_INPUT_IN_WORDS, LEN_WORD) for _ in range(BATCH_SIZE)] for k in range(TOTAL_SESSION_IN_BATCH_SIZE)]
+prompts = [[get_rand_req(INPUT_TOKENS, LEN_WORD, tokenizer) for _ in range(BATCH_SIZE)] for k in range(TOTAL_SESSION_IN_BATCH_SIZE)]
+
 # prompts = [[get_english_sentence(LEN_INPUT_IN_WORDS) for _ in range(BATCH_SIZE)] for k in range(TOTAL_SESSION_IN_BATCH_SIZE)]
 
 # print(f"first sentence for exampel is {prompts[0][0]}")
@@ -177,8 +203,10 @@ print(f"{BRIGHT_BLUE}Number of layers: {BRIGHT_YELLOW}{num_layers}{RESET}")
 print(f"{BRIGHT_BLUE}Number of attention heads: {BRIGHT_YELLOW}{num_heads}{RESET}")
 print(f"{BRIGHT_BLUE}Head dimension: {BRIGHT_YELLOW}{head_dim}{RESET}")
 print(f"{BRIGHT_BLUE}Hidden size: {BRIGHT_YELLOW}{hidden_size}{RESET}")
-import pdb; pdb.set_trace()
-exit()
+
+
+print(f"FILL THE CACHE STAGE")
+
 
 prefetch_dict = []
 for i in range(TOTAL_SESSION_IN_BATCH_SIZE):
@@ -191,6 +219,9 @@ for i in range(TOTAL_SESSION_IN_BATCH_SIZE):
 
 print(f"{BRIGHT_GREEN}=========== PREFETCHING DONE ==========={RESET}", file=sys.stderr)
 # exit()
+
+print(f"DONE WITH FILL STAGE")
+
 start_time = time.perf_counter()
 
 
@@ -225,6 +256,11 @@ else:
         y = time.perf_counter() - start_time
         print (f"iteration {i} and time elapsed {y} and the rate is {x / y}", file=sys.stderr)  
         outputs = llm.generate(prompts[i % TOTAL_SESSION_IN_BATCH_SIZE], sampling_params=sampling_params)
+        metrics = outputs[0].metrics
+        # TTFT in seconds
+        ttft = metrics.first_token_time - metrics.first_scheduled_time
+        print(f"XXXXXXXXXXXXXXXXXXYYYYYYYYYYYYYYYYYYYYYYYYYYYY       Time to first token: {ttft:.3f} seconds")
+
 
 
 

@@ -23,6 +23,7 @@ from lmcache.experimental.gpu_connector import VLLMPagedMemGPUConnectorV2
 from lmcache.integration.vllm.utils import ENGINE_NAME, lmcache_get_config
 from lmcache.logging import init_logger
 from lmcache.utils import _lmcache_nvtx_annotate
+import time
 
 # FIXME(Jiayi): temporarily comment this out
 #from lmcache_vllm.blend_adapter import remove_request_id_indices
@@ -481,7 +482,7 @@ def lmcache_store_kv(
                     f"and then stores {stored_token_num} tokens")
             seq_data_idx += 1
 
-
+counter = 0
 @_lmcache_nvtx_annotate
 def lmcache_retrieve_kv(
     model_executable: torch.nn.Module,
@@ -514,6 +515,7 @@ def lmcache_retrieve_kv(
 
     engine = LMCacheEngineBuilder.get(ENGINE_NAME)
     assert engine is not None, "LMCache engine is not initialized."
+    start_time = time.perf_counter()
 
     if engine.config.enable_blending:
         return model_input, False, None
@@ -561,10 +563,11 @@ def lmcache_retrieve_kv(
             else:
                 total_seq_len = seq_data.get_len()
                 do_sample_list.append(True)
-
+            x = time.perf_counter()
             full_token_tensor = torch.tensor(
                 seq_data.get_token_ids()[:total_seq_len], device="cpu")
             full_tokens_list.append(full_token_tensor)
+            print(f"BUILDIN TENSOR toook {(time.perf_counter() - x):.3f}")
 
             vllm_num_required_tokens = (query_start_loc[idx + 1] -
                                         query_start_loc[idx]).item()
@@ -685,9 +688,11 @@ def lmcache_retrieve_kv(
                                                     device=device,
                                                     dtype=dtype)
         logger.debug("Skip the entire model forward!")
+        print(f"ADAPTER1 retreive toook {(time.perf_counter() - start_time):.3f}")
         return model_input, True, hidden_or_intermediate_states
 
     if num_request_not_found < seq_cnt:
+        x = time.perf_counter()
         rebuilt_model_input = build_partial_prefill_input(
             model_input,
             full_tokens_list,
@@ -700,9 +705,11 @@ def lmcache_retrieve_kv(
             kv_caches[0][0].device,
             cache_config,
         )
+        print(f"REBUILDING MODEL  toook {(time.perf_counter() - x):.3f}")
         logger.debug("Rebuilt the input!")
+        print(f"ADAPTER2 retreive toook {(time.perf_counter() - start_time):.3f}")
         return rebuilt_model_input, False, None
-
+    print(f"ADAPTER3 retreive toook {(time.perf_counter() - start_time):.3f}")
     logger.debug("Returning the original input!")
     return model_input, False, None
 
@@ -745,6 +752,7 @@ def build_partial_prefill_input(
 
     last_query_start_loc = 0
 
+    x = time.perf_counter()
     # recounting query and context lengths
     for idx in range(len(full_tokens_list)):
         token_tensor = full_tokens_list[idx]
@@ -794,17 +802,25 @@ def build_partial_prefill_input(
         if do_sample_list[idx]:
             rebuilt_selected_token_indices.append(last_query_start_loc - 1)
 
+    print(f"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV  toook {(time.perf_counter() - x):.3f}")
     # rebuilt attn_metadata
+
+    x = time.perf_counter()
     rebuilt_attn_metadata = deepcopy(model_input.attn_metadata)
+    print(f"SSSSSSSSSSSSSSSSSSSSSSSSS  toook {(time.perf_counter() - x):.3f}")
     rebuilt_attn_metadata.num_prefills = rebuilt_num_prefills
     rebuilt_attn_metadata.num_prefill_tokens = rebuilt_num_prefill_tokens
+
+    x = time.perf_counter()
     rebuilt_attn_metadata.slot_mapping = torch.cat(rebuilt_slot_mapping).to(
         device)
+    print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH toook {(time.perf_counter() - x):.3f}")
     rebuilt_attn_metadata.max_query_len = rebuilt_max_query_len
 
     rebuilt_attn_metadata.block_tables = pad_sequence(
         rebuilt_block_tables, batch_first=True).to(device)
-
+    import ipdb; ipdb.set_trace()
+    x = time.perf_counter()
     rebuilt_attn_metadata.query_start_loc = torch.tensor(
         rebuilt_query_start_loc,
         dtype=model_input.attn_metadata.query_start_loc.dtype).to(device)
@@ -812,10 +828,13 @@ def build_partial_prefill_input(
         rebuilt_context_lens_tensor,
         dtype=model_input.attn_metadata.context_lens_tensor.dtype,
     ).to(device)
+    print(f"LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL toook {(time.perf_counter() - x):.3f}")
 
     rebuilt_attn_metadata._cached_prefill_metadata = None
     rebuilt_sampling_metadata = None
     # rebuilt sampling_metadata
+
+    x = time.perf_counter()
     if model_input.sampling_metadata is not None:
         rebuilt_sampling_metadata = deepcopy(model_input.sampling_metadata)
         for idx, q_len in enumerate(rebuilt_query_lens):
@@ -827,8 +846,10 @@ def build_partial_prefill_input(
             dtype=model_input.sampling_metadata.selected_token_indices.dtype,
         ).to(device)
 
+    print(f"RRRRRRRRRRRRRRRRRRR  toook {(time.perf_counter() - x):.3f}")
     # import here to avoid circular import.
     from vllm.worker.model_runner import ModelInputForGPUWithSamplingMetadata
+    x = time.perf_counter()
     rebuilt_model_input = ModelInputForGPUWithSamplingMetadata(
         input_tokens=torch.cat(rebuilt_input_tokens).to(device),
         input_positions=torch.cat(rebuilt_input_positions).to(device),
@@ -847,5 +868,6 @@ def build_partial_prefill_input(
         is_prompt=model_input.is_prompt,
         async_callback=model_input.async_callback,
     )
+    print(f"MMMMMMMMMMMMMMMMMMMM  toook {(time.perf_counter() - x):.3f}")
 
     return rebuilt_model_input
