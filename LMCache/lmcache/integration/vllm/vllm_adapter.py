@@ -504,6 +504,8 @@ def lmcache_retrieve_kv(
     :param kv_caches: The paged memory to put KV to
     :type kv_caches: List[torch.Tensor]
 
+
+
     :param retrieve_status: Indicate whether and how 
                             KV cache of each req is retrieved
     :type retrieve_status: List[RetrieveStatus]
@@ -581,6 +583,7 @@ def lmcache_retrieve_kv(
             # number of tokens already computed by vllm
             # (e.g., chunk prefill, prefix caching)
             vllm_num_computed_tokens = total_seq_len - vllm_num_required_tokens
+            print (f"vllm_num_computed_tokens: {vllm_num_computed_tokens}")     
 
             # NOTE: No need to retrieve from lmc if the current sequence is
             # in DECODE stage
@@ -610,6 +613,7 @@ def lmcache_retrieve_kv(
             vllm_num_computed_tokens_align = vllm_num_computed_tokens\
                 // lmc_chunk_size * lmc_chunk_size
             token_mask[:vllm_num_computed_tokens_align] = False
+            
 
             # TODO(Jiayi): Please get rid of this in the future
             # Please only pass the required slot_mapping to the engine
@@ -622,13 +626,14 @@ def lmcache_retrieve_kv(
                     slot_mapping[start_pos:end_pos]
             else:
                 slot_mapping_req_full = slot_mapping[start_pos:end_pos]
-
             # call lmcache retrieve
             ret_token_mask = engine.retrieve(
                 full_token_tensor,
                 token_mask,
                 kvcaches=kv_caches,
                 slot_mapping=slot_mapping_req_full)
+            
+
             lmc_num_computed_tokens = max(
                     torch.sum(ret_token_mask).item() - \
                     (vllm_num_computed_tokens - vllm_num_computed_tokens_align),
@@ -636,7 +641,7 @@ def lmcache_retrieve_kv(
                 )
 
             assert isinstance(lmc_num_computed_tokens, int)
-
+                 
             # total number of computed tokens (vllm + lmc)
             num_computed_tokens = vllm_num_computed_tokens + \
                 lmc_num_computed_tokens
@@ -802,9 +807,20 @@ def build_partial_prefill_input(
         if do_sample_list[idx]:
             rebuilt_selected_token_indices.append(last_query_start_loc - 1)
 
+
+
+    test_start = time.perf_counter()
+    small_test_list = [1, 2, 3, 4, 5]  # Small list similar to rebuilt_query_start_loc
+    test_tensor = torch.tensor(small_test_list, dtype=torch.int64).to(device)
+    print(f"SSSSSSSSSSSSSSSMALL TENSOR TEST took {(time.perf_counter() - test_start):.6f}")
+
+
+
+
+
     print(f"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV  toook {(time.perf_counter() - x):.3f}")
     # rebuilt attn_metadata
-
+    #import ipdb; ipdb.set_trace()
     x = time.perf_counter()
     rebuilt_attn_metadata = deepcopy(model_input.attn_metadata)
     print(f"SSSSSSSSSSSSSSSSSSSSSSSSS  toook {(time.perf_counter() - x):.3f}")
@@ -816,11 +832,17 @@ def build_partial_prefill_input(
         device)
     print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH toook {(time.perf_counter() - x):.3f}")
     rebuilt_attn_metadata.max_query_len = rebuilt_max_query_len
-
     rebuilt_attn_metadata.block_tables = pad_sequence(
         rebuilt_block_tables, batch_first=True).to(device)
-    import ipdb; ipdb.set_trace()
     x = time.perf_counter()
+    print(f"rebuilt_query_start_loc: {rebuilt_query_start_loc} dtype: {model_input.attn_metadata.query_start_loc.dtype}")
+    
+    # Test small tensor creation and GPU copy
+    test_start = time.perf_counter()
+    small_test_list = [1, 2, 3, 4, 5]  # Small list similar to rebuilt_query_start_loc
+    test_tensor = torch.tensor(small_test_list, dtype=torch.int64).to(device)
+    print(f"SMALL TENSOR TEST took {(time.perf_counter() - test_start):.6f}")
+    
     rebuilt_attn_metadata.query_start_loc = torch.tensor(
         rebuilt_query_start_loc,
         dtype=model_input.attn_metadata.query_start_loc.dtype).to(device)
