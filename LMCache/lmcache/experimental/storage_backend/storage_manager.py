@@ -212,7 +212,7 @@ class StorageManager:
                 continue
             while not put_task.done():
                  pass
-            self.memory_allocator.ref_count_down(memory_obj)
+            #self.memory_allocator.ref_count_down(memory_obj)
             # self.list_of_put_tasks_futures.append((memory_obj, put_task))
 
         self.manager_lock.acquire()

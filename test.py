@@ -13,7 +13,7 @@ WITH_RAI = False
 MAX_LOCAL_CPU_SIZE = 100
 MAX_LOCAL_DISK_SIZE = 300
 LOCAL_CPU = True
-LOCAL_DISK = None #"file:///tmp/rai/"
+LOCAL_DISK = "file:///tmp/rai/"
 CHUNK_SIZE = 32 * 1024
 LMCACHE_CHUNK_SIZE =  32 * 1024 
 
