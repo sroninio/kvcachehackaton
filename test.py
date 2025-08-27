@@ -6,6 +6,7 @@ import global_vars
 import random
 import string
 import yaml
+import pickle
 
 
 #CONFIGURATION PARAMETERS
@@ -31,15 +32,6 @@ TOTAL_SESSIONS = KV_HBM_PER_GPU * NUM_GPUS * 2 // ((INPUT_TOKENS + OUTPUT_TOKENS
 #TOTAL_SESSIONS = 4
 TOTAL_SESSION_IN_BATCH_SIZE = TOTAL_SESSIONS // BATCH_SIZE
 WITH_STORAGE = False
-
-
-
-
-
-
-
-
-
 
 # Read the existing config
 with open("lmcache_config.yaml", "r") as f:
@@ -71,11 +63,7 @@ RESET = "\033[0m"
 def count_tokens(text, tokenizer):
     tokens = tokenizer.encode(text)
     return len(tokens)
-'''
-def get_rand_req(n,l,tokenizer):
-    return " ".join([''.join(random.choices(string.ascii_letters, k=l)) for _ in range(n)])
 
-'''
 def get_rand_req(n,l, tokenizer):
     print("Starting creating rand request")
     req = "hi"
@@ -90,23 +78,6 @@ def get_rand_req(n,l, tokenizer):
 
     
 
-import nltk
-from nltk.corpus import words
-
-def get_english_sentence(n_words):
-    # Download if needed (only once)
-    try:
-        nltk.data.find('corpora/words')
-    except LookupError:
-        nltk.download('words')
-    
-    english_words = words.words()
-    # Filter for more common length words
-    english_words = [w for w in english_words if 3 <= len(w) <= 8]
-    return " ".join(random.sample(english_words, n_words))
-
-# #remove later:
-# sys.stderr = open('log.txt', 'w')
 
 import random
 
@@ -152,13 +123,18 @@ llm = LLM(
 tokenizer = llm.get_tokenizer()
 
 
-prompts = [[get_rand_req(INPUT_TOKENS, LEN_WORD, tokenizer) for _ in range(BATCH_SIZE)] for k in range(TOTAL_SESSION_IN_BATCH_SIZE)]
+# Check if prompts file exists, load it if it does, otherwise generate and save
+prompts_filename = f"prompts.{INPUT_TOKENS}.{LEN_WORD}.{BATCH_SIZE}.{TOTAL_SESSION_IN_BATCH_SIZE}"
 
-# prompts = [[get_english_sentence(LEN_INPUT_IN_WORDS) for _ in range(BATCH_SIZE)] for k in range(TOTAL_SESSION_IN_BATCH_SIZE)]
-
-# print(f"first sentence for exampel is {prompts[0][0]}")
-# print(f"second sentence for exampel is {prompts[0][1]}")
-# exit()
+if os.path.exists(prompts_filename):
+    print(f"Loading prompts from {prompts_filename}")
+    with open(prompts_filename, 'rb') as f:
+        prompts = pickle.load(f)
+else:
+    print(f"Generating new prompts and saving to {prompts_filename}")
+    prompts = [[get_rand_req(INPUT_TOKENS, LEN_WORD, tokenizer) for _ in range(BATCH_SIZE)] for k in range(TOTAL_SESSION_IN_BATCH_SIZE)]
+    with open(prompts_filename, 'wb') as f:
+        pickle.dump(prompts, f)
 
 for batch in prompts:
     for p in batch:
