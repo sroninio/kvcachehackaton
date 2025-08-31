@@ -367,7 +367,6 @@ class VLLMPagedMemGPUConnectorV2(GPUConnectorInterface):
         #        slot_mapping[start:end],
         #        kvcaches[0].device, self.page_buffer_size, False)
         start_time = time.perf_counter()
-        time.sleep(10)
 
         lmc_ops.multi_layer_kv_transfer(memory_obj.tensor,
                                         self.kv_cache_pointers,
