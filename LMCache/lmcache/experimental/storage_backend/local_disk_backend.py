@@ -2,6 +2,7 @@ import asyncio
 import os
 import threading
 import sys
+from warnings import showwarning
 sys.path.append('/workspace/external')
 
 # ANSI escape codes for colors
@@ -230,13 +231,49 @@ class LocalDiskBackend(StorageBackendInterface):
         print(f"{BRIGHT_YELLOW}LocalDiskBackend::prefetch returning future for key {key.to_string()}{RESET}")
         return (future, key)
 
+    async def acquire_disk_lock_async(self):
+        await asyncio.get_event_loop().run_in_executor(None, self.disk_lock.acquire)
+
+
+    async def prefetch_async(self, key):
+        print(f"{BRIGHT_YELLOW}LocalDiskBackend::prefetch called for key {key.to_string()}{RESET}")
+        await self.acquire_disk_lock_async()
+        if key not in self.dict:
+            self.disk_lock.release()
+            return (None, None) 
+        # Update cache recency
+        self.evictor.update_on_hit(key, self.dict)
+        path = self.dict[key].path
+        dtype = self.dict[key].dtype
+        shape = self.dict[key].shape
+        self.disk_lock.release()
+        assert dtype is not None
+        assert shape is not None 
+        mem_obj = self.async_load_bytes_from_disk(path, dtype, shape)
+        return mem_obj
+
+
+    def add_to_prefetched(self, key, mem_obj):
+        self.disk_lock.acquire()
+        self.prefetched[key] = mem_obj
+        self.disk_lock.release()
+
+    
+    def remove_from_prefteched(self, key):
+        self.disk_lock.acquire()
+        if key in self.prefetched:
+            self.memory_allocator.free(self.prefetched[key]) 
+            del self.prefetched[key] 
+        self.disk_lock.release()
+
+ 
     def feed_prefetched(self, prefteched):
         self.disk_lock.acquire()
         self.prefetched = prefteched
         self.disk_lock.release()
 
 
-    def free_prefetched(self):
+    def free_prefetched(self, key = None):
         self.disk_lock.acquire()
         for key in self.prefetched:
             self.memory_allocator.free(self.prefetched[key])
