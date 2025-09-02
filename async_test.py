@@ -28,13 +28,12 @@ TOKEN_KV_SIZE = 128 * 1024
 INPUT_TOKENS = CHUNK_SIZE 
 OUTPUT_TOKENS = 1
 LEN_WORD = 6
-NUM_ITERATIONS = 10
+NUM_ITERATIONS = 100
 WITH_STORAGE = False
 GPU_MEM_UTILIZATION_RATIO = 0.6
 GPU_MEM = 80 * 1024 * 1024 * 1024 
 TP = 1
-LLM_INFLIGHTS = 10
-LM_CACHE_INFLIGHTS = 5
+INFLIGHTS = 10
 SESSIONS = 20
 
 # ANSI escape codes for colors
@@ -99,7 +98,7 @@ def create_engine(lmcache_config):
         ),
         gpu_memory_utilization=GPU_MEM_UTILIZATION_RATIO,
         max_model_len=100000,
-        tensor_parallel_size=tp,
+        tensor_parallel_size=TP,
         enable_prefix_caching=True,
         max_num_batched_tokens=CHUNK_SIZE,
     )
@@ -128,38 +127,44 @@ def create_prompts(engine):
     return prompts
 
 
+async def execute_single_request_in_llm(engine, req, sampling_params, indx):
+    async for output in engine.generate(req, sampling_params=sampling_params, request_id=indx):
+        pass 
 
 async def enter_new_request(engine, p, sampling_params, indx):
-    for key in p['keys']:
-        mem_obj = await global_vars.backend.prefetch_async(key)
+    for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
         if mem_obj:
-            global_vars.backend.add_to_prefetched(key, mem_obj)
-    async for output in engine.generate(prompt=p["req"], sampling_params=sampling_params, request_id=indx):
-        pass
+           global_vars.backend.add_to_prefetched(p['keys'][i], mem_obj) 
+    await execute_single_request_in_llm(engine, p["req"], sampling_params, indx)
     for key in p['keys']:
        global_vars.backend.remove_from_prefteched(key) 
 
 
-
     
-async def add_hash_keys_to_prompts(prompts, sampling_params):
+async def add_hash_keys_to_prompts(engine, prompts, sampling_params):
     #get the keys for each prompt
     print (f"GETTING KEYS OF EACH PROMPT")
     for indx, p in enumerate(prompts):
         global_vars.chunk_hashes_of_curr_batch = []
-        async for output in engine.generate(prompt=p["req"], sampling_params=sampling_params, request_id=indx):
-            p["keys"] = global_vars.chunk_hashes_of_curr_batch
+        await execute_single_request_in_llm(engine, p["req"], sampling_params, indx)
+        p["keys"] = global_vars.chunk_hashes_of_curr_batch
     print (f"FINISHED GETING KEYS OF EACH PROMPT")
 
 
  
 async def main():
-   lmcache_config = global_configure()
-   sampling_params, engine = create_engine(lmcache_config) 
-   prompts = create_prompts(engine)
-   await add_hash_keys_to_prompts(prompts, sampling_params)
-   ......
-   
+    lmcache_config = global_configure()
+    sampling_params, engine = create_engine(lmcache_config) 
+    prompts = create_prompts(engine)
+    await add_hash_keys_to_prompts(engine, prompts, sampling_params)
+    running, inflights = [], 0
+    for i in range(NUM_ITERATIONS):
+        running.append(asyncio.create_task(enter_new_request(engine, prompts[i % len(prompts)], sampling_params, i)))
+        inflights += 1
+        if inflights == INFLIGHTS:
+            done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
+            inflights -= len(done)
+    await asyncio.gather(*running)
 
 if __name__ == "__main__":
     asyncio.run(main())

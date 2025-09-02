@@ -231,26 +231,24 @@ class LocalDiskBackend(StorageBackendInterface):
         print(f"{BRIGHT_YELLOW}LocalDiskBackend::prefetch returning future for key {key.to_string()}{RESET}")
         return (future, key)
 
-    async def acquire_disk_lock_async(self):
-        await asyncio.get_event_loop().run_in_executor(None, self.disk_lock.acquire)
 
 
-    async def prefetch_async(self, key):
-        print(f"{BRIGHT_YELLOW}LocalDiskBackend::prefetch called for key {key.to_string()}{RESET}")
-        await self.acquire_disk_lock_async()
-        if key not in self.dict:
-            self.disk_lock.release()
-            return (None, None) 
-        # Update cache recency
-        self.evictor.update_on_hit(key, self.dict)
-        path = self.dict[key].path
-        dtype = self.dict[key].dtype
-        shape = self.dict[key].shape
+
+    async def prefetch_async(self, keys):
+        print(f"{BRIGHT_YELLOW}LocalDiskBackend::prefetch called for keys {keys}{RESET}")
+        self.disk_lock.acquire()
+        tasks = []
+        for key in keys:
+            assert key in self.dict
+            self.evictor.update_on_hit(key, self.dict)
+            path = self.dict[key].path
+            dtype = self.dict[key].dtype
+            shape = self.dict[key].shape 
+            assert dtype is not None
+            assert shape is not None 
+            tasks.append(asyncio.create_task(self.async_load_bytes_from_disk(path, dtype, shape)))
         self.disk_lock.release()
-        assert dtype is not None
-        assert shape is not None 
-        mem_obj = self.async_load_bytes_from_disk(path, dtype, shape)
-        return mem_obj
+        return await asyncio.gather(*tasks)
 
 
     def add_to_prefetched(self, key, mem_obj):
