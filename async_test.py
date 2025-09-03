@@ -111,7 +111,7 @@ def create_engine(lmcache_config):
 
 def create_prompts(engine):
     # Get tokenizer
-    tokenizer = engine.get_tokenizer()
+    tokenizer = engine.engine.get_tokenizer()
 
     # Get prompts
     prompts_filename = f"prompts_async.{INPUT_TOKENS}.{LEN_WORD}.{SESSIONS}"
@@ -132,12 +132,14 @@ async def execute_single_request_in_llm(engine, req, sampling_params, indx):
         pass 
 
 async def enter_new_request(engine, p, sampling_params, indx):
-    for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
-        if mem_obj:
-           global_vars.backend.add_to_prefetched(p['keys'][i], mem_obj) 
+    if global_vars.backend:
+        for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
+            if mem_obj:
+                global_vars.backend.add_to_prefetched(p['keys'][i], mem_obj) 
     await execute_single_request_in_llm(engine, p["req"], sampling_params, indx)
-    for key in p['keys']:
-       global_vars.backend.remove_from_prefteched(key) 
+    if global_vars.backend:
+        for key in p['keys']:
+            global_vars.backend.remove_from_prefteched(key) 
 
 
     
@@ -157,9 +159,9 @@ async def main():
     sampling_params, engine = create_engine(lmcache_config) 
     prompts = create_prompts(engine)
     await add_hash_keys_to_prompts(engine, prompts, sampling_params)
-    running, inflights = [], 0
+    running, inflights = set(), 0
     for i in range(NUM_ITERATIONS):
-        running.append(asyncio.create_task(enter_new_request(engine, prompts[i % len(prompts)], sampling_params, i)))
+        running.add(asyncio.create_task(enter_new_request(engine, prompts[i % len(prompts)], sampling_params, i)))
         inflights += 1
         if inflights == INFLIGHTS:
             done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
