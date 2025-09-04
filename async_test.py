@@ -141,7 +141,6 @@ async def enter_new_request(engine, p, sampling_params, indx):
         for key in p['keys']:
             global_vars.backend.remove_from_prefteched(key) 
 
-
     
 async def add_hash_keys_to_prompts(engine, prompts, sampling_params):
     #get the keys for each prompt
@@ -160,13 +159,29 @@ async def main():
     prompts = create_prompts(engine)
     await add_hash_keys_to_prompts(engine, prompts, sampling_params)
     running, inflights = set(), 0
+    start_time = None
+    
     for i in range(NUM_ITERATIONS):
+        # Start timer after N/2 iterations
+        if i == NUM_ITERATIONS // 2:
+            start_time = time.time()
+            print(f"{BRIGHT_YELLOW}Starting timer at iteration {i}{RESET}")
+            
         running.add(asyncio.create_task(enter_new_request(engine, prompts[i % len(prompts)], sampling_params, i)))
         inflights += 1
         if inflights == INFLIGHTS:
             done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
             inflights -= len(done)
     await asyncio.gather(*running)
+    
+    # Stop timer and calculate metrics
+    end_time = time.time()
+    total_time = end_time - start_time
+    avg_time_per_iteration = total_time / (NUM_ITERATIONS // 2)
+    
+    print(f"{BRIGHT_GREEN}Total execution time: {total_time:.2f} seconds{RESET}")
+    print(f"{BRIGHT_BLUE}Average time per iteration: {avg_time_per_iteration:.4f} seconds{RESET}")
+    print(f"{BRIGHT_YELLOW}Total iterations measured: {NUM_ITERATIONS // 2}{RESET}")
 
 if __name__ == "__main__":
     asyncio.run(main())
