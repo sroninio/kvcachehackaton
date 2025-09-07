@@ -83,6 +83,7 @@ class VLLM_BENCHMARK:
         self.SESSIONS = sessions
         self.statistics = Statisics()
         self.terminate = False
+        self.sampling_params, self.engine = self.create_engine(self.global_configure()) 
 
 
     def count_tokens(self, text, tokenizer):
@@ -152,9 +153,9 @@ class VLLM_BENCHMARK:
         ) 
         return sampling_params, engine
 
-    def create_prompts(self, engine):
+    def create_prompts(self):
         # Get tokenizer
-        tokenizer = engine.engine.get_tokenizer()
+        tokenizer = self.engine.engine.get_tokenizer()
 
         # Get prompts
         prompts_filename = f"prompts_async.{self.INPUT_TOKENS}.{self.LEN_WORD}.{self.SESSIONS}"
@@ -169,11 +170,11 @@ class VLLM_BENCHMARK:
                 pickle.dump(prompts, f)
         return prompts
 
-    async def execute_single_request_in_llm(self, engine, req, sampling_params, indx):
-        async for output in engine.generate(req, sampling_params=sampling_params, request_id=indx):
+    async def execute_single_request_in_llm(self,  req,  indx):
+        async for output in self.engine.generate(req, sampling_params=self.sampling_params, request_id=indx):
             pass 
 
-    async def enter_new_request(self, engine, p, sampling_params, indx):
+    async def enter_new_request(self, p, indx):
         if global_vars.backend:
             self.statistics.curr_disk_inflights += 1
             for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
@@ -181,18 +182,18 @@ class VLLM_BENCHMARK:
                     global_vars.backend.add_to_prefetched(p['keys'][i], mem_obj) 
             self.statistics.curr_disk_inflights -= 1
         self.statistics.curr_llm_inflights += 1
-        await self.execute_single_request_in_llm(engine, p["req"], sampling_params, indx)
+        await self.execute_single_request_in_llm(p["req"], indx)
         if global_vars.backend:
             for key in p['keys']:
                 global_vars.backend.remove_from_prefteched(key) 
         self.statistics.curr_llm_inflights -= 1
 
-    async def add_hash_keys_to_prompts(self, engine, prompts, sampling_params):
+    async def add_hash_keys_to_prompts(self, prompts):
         #get the keys for each prompt
         print (f"GETTING KEYS OF EACH PROMPT")
         for indx, p in enumerate(prompts):
             global_vars.chunk_hashes_of_curr_batch = []
-            await self.execute_single_request_in_llm(engine, p["req"], sampling_params, indx)
+            await self.execute_single_request_in_llm(p["req"], indx)
             p["keys"] = global_vars.chunk_hashes_of_curr_batch
         print (f"FINISHED GETING KEYS OF EACH PROMPT")
 
@@ -248,21 +249,19 @@ class VLLM_BENCHMARK:
 
 
     async def run_benchmark(self, MAX_INFLGITHS):
-        lmcache_config = self.global_configure()
-        sampling_params, engine = self.create_engine(lmcache_config) 
-        prompts = self.create_prompts(engine)
-        await self.add_hash_keys_to_prompts(engine, prompts, sampling_params)
+        prompts = self.create_prompts()
+        await self.add_hash_keys_to_prompts(prompts)
         
         running, inflights = set(), 0
         start_time = None
         
-        for i in range(self.NUM_ITERATIONS):
+        for i in range(1, self.NUM_ITERATIONS):
             # Start timer after N/2 iterations
             if i == self.NUM_ITERATIONS // 2:
                 start_time = time.time()
                 print(f"{BRIGHT_YELLOW}Starting timer at iteration {i}{RESET}")
                 self.stat_task = asyncio.create_task(self.update_statistics()) 
-            running.add(asyncio.create_task(self.enter_new_request(engine, prompts[i % len(prompts)], sampling_params, i)))
+            running.add(asyncio.create_task(self.enter_new_request(prompts[i % len(prompts)], i)))
             inflights += 1
             if inflights == MAX_INFLGITHS:
                 done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
@@ -290,7 +289,7 @@ class VLLM_BENCHMARK:
 
 async def main():
     benchmark = VLLM_BENCHMARK()
-    for inflights in range(30):
+    for inflights in range(1, 5):
         await benchmark.run_benchmark(inflights)
     
 
