@@ -58,7 +58,7 @@ class VLLM_BENCHMARK:
                  input_tokens=32 * 1024,
                  output_tokens=1,
                  len_word=6,
-                 num_iterations=100,
+                 num_iterations=60,
                  with_storage=False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
@@ -175,6 +175,8 @@ class VLLM_BENCHMARK:
             pass 
 
     async def enter_new_request(self, p, indx):
+        import time
+        start_time = time.time()
         if global_vars.backend:
             self.statistics.curr_disk_inflights += 1
             for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
@@ -187,6 +189,10 @@ class VLLM_BENCHMARK:
             for key in p['keys']:
                 global_vars.backend.remove_from_prefteched(key) 
         self.statistics.curr_llm_inflights -= 1
+        
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"enter_new_request (index {indx}) took {execution_time:.4f} seconds")
 
     async def add_hash_keys_to_prompts(self, prompts):
         #get the keys for each prompt
@@ -257,7 +263,7 @@ class VLLM_BENCHMARK:
         
         for i in range(1, self.NUM_ITERATIONS):
             # Start timer after N/2 iterations
-            if i == self.NUM_ITERATIONS // 2:
+            if (i == self.NUM_ITERATIONS // 2) and (1==0):
                 start_time = time.time()
                 print(f"{BRIGHT_YELLOW}Starting timer at iteration {i}{RESET}")
                 self.stat_task = asyncio.create_task(self.update_statistics()) 
