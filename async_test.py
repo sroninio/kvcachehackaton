@@ -26,17 +26,17 @@ RESET = "\033[0m"
 
 class Statisics:
     def __init__(self, test):
-        self.curr_disk_inflights = 0
-        self.curr_llm_inflights = 0
-        self.avg_disk_inflights = (0, 0) # (samples, avg_value)
-        self.avg_llm_inflights = (0, 0) # (samples, avg_value) 
-        self.avg_time_per_request = 0
-
+        self.reset()
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         timestamp_str = timestamp.replace(" ", "_").replace(":", "-")
         self.filename = f"statistics_{timestamp_str}_tp_{test.TP}_chunk{test.CHUNK_SIZE}_input{test.INPUT_TOKENS}_output{test.OUTPUT_TOKENS}_sessions{test.SESSIONS}"
 
-    
+    def reset(self):
+        self.curr_disk_inflights = 0
+        self.curr_llm_inflights = 0
+        self.avg_disk_inflights = (0, 0) # (samples, avg_value)
+        self.avg_llm_inflights = (0, 0) # (samples, avg_value) 
+
     def update(self):
         # Update disk inflights average
         samples_disk, avg_disk = self.avg_disk_inflights
@@ -54,7 +54,7 @@ class Statisics:
          
 class VLLM_BENCHMARK:
     def __init__(self, 
-                 max_local_cpu_size=800,
+                 max_local_cpu_size=300,
                  max_local_disk_size=300,
                  local_cpu=True,
                  local_disk=None,
@@ -279,6 +279,7 @@ async def main():
     benchmark = VLLM_BENCHMARK()
     for inflights in range(1, 20):
         await benchmark.run_benchmark(inflights)
+        benchmark.statistics.reset()
     
 
 
