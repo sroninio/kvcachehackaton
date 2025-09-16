@@ -62,13 +62,13 @@ class VLLM_BENCHMARK:
                  lmcache_chunk_size=32 * 1024,
                  token_kv_size=128 * 1024,
                  input_tokens=32 * 1024,
-                 output_tokens=1,
+                 output_tokens=1024,
                  len_word=6,
                  num_iterations=60,
                  with_storage=False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
-                 tp=2,
+                 tp=1,
                  sessions=4):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
