@@ -22,6 +22,8 @@ import datetime
 BRIGHT_GREEN = "\033[92m"
 BRIGHT_BLUE = "\033[94m"
 BRIGHT_YELLOW = "\033[93m"
+BRIGHT_RED = "\033[91m"
+BOLD_RED = "\033[1;91m"
 RESET = "\033[0m"
 
 class Statisics:
@@ -62,9 +64,9 @@ class VLLM_BENCHMARK:
                  lmcache_chunk_size=32 * 1024,
                  token_kv_size=128 * 1024,
                  input_tokens=32 * 1024,
-                 output_tokens=1024,
+                 output_tokens=128,
                  len_word=6,
-                 num_iterations=60,
+                 num_iterations=10,
                  with_storage=False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
@@ -190,7 +192,11 @@ class VLLM_BENCHMARK:
                     global_vars.backend.add_to_prefetched(p['keys'][i], mem_obj) 
             self.statistics.curr_disk_inflights -= 1
         self.statistics.curr_llm_inflights += 1
+        
+        print(f"{BOLD_RED}STARTING ASYNC EXECUTION INDX {i}{RESET}")
         await self.execute_single_request_in_llm(p["req"], indx)
+        print(f"{BOLD_RED}FINISHING ASYNC EXECUTION INDX {i} {RESET}")
+
         if global_vars.backend:
             for key in p['keys']:
                 global_vars.backend.remove_from_prefteched(key) 
