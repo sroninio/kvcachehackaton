@@ -56,9 +56,9 @@ class Statisics:
          
 class VLLM_BENCHMARK:
     def __init__(self, 
-                 max_local_cpu_size=300,
+                 max_local_cpu_size=100,
                  max_local_disk_size=300,
-                 local_cpu=True,
+                 local_cpu=False,
                  local_disk=None,
                  chunk_size=32 * 1024,
                  lmcache_chunk_size=32 * 1024,
@@ -66,11 +66,11 @@ class VLLM_BENCHMARK:
                  input_tokens=32 * 1024,
                  output_tokens=128,
                  len_word=6,
-                 num_iterations=10,
+                 num_iterations=50,
                  with_storage=False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
-                 tp=1,
+                 tp=4,
                  sessions=4):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
@@ -193,9 +193,9 @@ class VLLM_BENCHMARK:
             self.statistics.curr_disk_inflights -= 1
         self.statistics.curr_llm_inflights += 1
         
-        print(f"{BOLD_RED}STARTING ASYNC EXECUTION INDX {i}{RESET}")
+        print(f"{BOLD_RED}STARTING ASYNC EXECUTION INDX {indx}{RESET}")
         await self.execute_single_request_in_llm(p["req"], indx)
-        print(f"{BOLD_RED}FINISHING ASYNC EXECUTION INDX {i} {RESET}")
+        print(f"{BOLD_RED}FINISHING ASYNC EXECUTION INDX {indx} {RESET}")
 
         if global_vars.backend:
             for key in p['keys']:
@@ -240,24 +240,18 @@ class VLLM_BENCHMARK:
                 "llm_samples": llm_samples
             }
         }
-        
-        
         # Append to statistics file
         with open(self.statistics.filename, "a") as f:
             f.write(f"{stats_entry}\n")
         
-
-
-
-    async def run_benchmark(self, MAX_INFLGITHS):
+    async def run_benchmark(self, MAX_INFLGITHS, NUM_ITERATIONS):
         prompts = self.create_prompts()
         await self.add_hash_keys_to_prompts(prompts)
         
         running, inflights = set(), 0
         start_time = time.time() 
-        self.stat_task = asyncio.create_task(self.update_statistics()) 
         
-        for i in range(1, self.NUM_ITERATIONS):
+        for i in range(1, NUM_ITERATIONS):
             running.add(asyncio.create_task(self.enter_new_request(prompts[i % len(prompts)], i)))
             inflights += 1
             if inflights == MAX_INFLGITHS:
@@ -268,7 +262,7 @@ class VLLM_BENCHMARK:
         
         # Stop timer and calculate metrics
         total_time = time.time() - start_time
-        self.statistics.reqs_per_second = self.NUM_ITERATIONS / total_time 
+        self.statistics.reqs_per_second = NUM_ITERATIONS / total_time 
         
         
         print(f"{BRIGHT_GREEN}Total execution time: {total_time:.2f} seconds{RESET}")
@@ -277,15 +271,18 @@ class VLLM_BENCHMARK:
         # Append statistics to file
         self.append_statistics_to_file(MAX_INFLGITHS)
         
-        # Wait for statistics task to complete
-        await self.stat_task
         
 
 async def main():
     benchmark = VLLM_BENCHMARK()
-    for inflights in range(1, 20):
-        await benchmark.run_benchmark(inflights)
+    for inflights in [1,2,4,8,16,32,64,128,256]:
+        print(f"{BOLD_RED}STARTING ITERATION WITH {inflights} INFLIGHTS {RESET}")
         benchmark.statistics.reset()
+        benchmark.terminate = False
+        benchmark.stat_task = asyncio.create_task(benchmark.update_statistics()) 
+        await benchmark.run_benchmark(inflights, inflights * 5)
+        benchmark.terminate = True
+        await benchmark.stat_task
     
 
 
