@@ -239,6 +239,13 @@ class LMCacheEngine:
             self.store_distributed(tokens, mask, **kwargs)
             return
 
+        import traceback
+        print("=" * 60)
+        print("STACK TRACE AT LINE 241:")
+        print("=" * 60)
+        traceback.print_stack()
+        print("=" * 60)
+
         if mask is not None:
             num_stored_tokens = torch.sum(mask).item()
         else:
