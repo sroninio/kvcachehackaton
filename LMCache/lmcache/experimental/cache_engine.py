@@ -240,11 +240,19 @@ class LMCacheEngine:
             return
 
         import traceback
-        print("=" * 60)
-        print("STACK TRACE AT LINE 241:")
-        print("=" * 60)
-        traceback.print_stack()
-        print("=" * 60)
+        import os
+        
+        # Create stack trace file with process ID
+        pid = os.getpid()
+        stack_file = f"stack_trace_pid_{pid}.txt"
+        
+        with open(stack_file, "a") as f:
+            f.write("=" * 60 + "\n")
+            f.write(f"STACK TRACE AT LINE 241 - PID {pid}\n")
+            f.write("=" * 60 + "\n")
+            traceback.print_stack(file=f)
+            f.write("=" * 60 + "\n")
+            f.write("\n")
 
         if mask is not None:
             num_stored_tokens = torch.sum(mask).item()
