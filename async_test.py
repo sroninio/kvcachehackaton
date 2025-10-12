@@ -56,10 +56,12 @@ class Statisics:
          
 class VLLM_BENCHMARK:
     def __init__(self, 
-                 max_local_cpu_size=100,
+                 max_local_cpu_size=300,
                  max_local_disk_size=300,
-                 local_cpu=False,
-                 local_disk=None,
+                 local_cpu=True,
+                 #local_disk = "file:///tmp/abc/",
+                 #local_disk = "file:///tmp/abc/",
+                 local_disk = None,
                  chunk_size=32 * 1024,
                  lmcache_chunk_size=32 * 1024,
                  token_kv_size=128 * 1024,
@@ -70,8 +72,8 @@ class VLLM_BENCHMARK:
                  with_storage=False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
-                 tp=4,
-                 sessions=4):
+                 tp=2,
+                 sessions=40):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
         self.MAX_LOCAL_DISK_SIZE = max_local_disk_size
@@ -99,6 +101,16 @@ class VLLM_BENCHMARK:
         return len(tokens)
 
     def get_rand_req(self, n, l, tokenizer):
+        while True:
+            word = ''.join(random.choices(string.ascii_lowercase, k=6))
+            req = word + " " + "hi " * (n-10)
+            while self.count_tokens(req, tokenizer) < n:
+                req += "hi"
+            if self.count_tokens(req, tokenizer) == n:
+                print("Finished creating rand request")
+                return req
+
+    def get_rand_req2(self, n, l, tokenizer):
         print("Starting creating rand request")
         req = "hi"
         while self.count_tokens(req, tokenizer) < (n - 1000):
@@ -275,7 +287,7 @@ class VLLM_BENCHMARK:
 
 async def main():
     benchmark = VLLM_BENCHMARK()
-    for inflights in [1,2,4,8,16,32,64,128,256]:
+    for inflights in [32]:
         print(f"{BOLD_RED}STARTING ITERATION WITH {inflights} INFLIGHTS {RESET}")
         benchmark.statistics.reset()
         benchmark.terminate = False

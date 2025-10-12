@@ -1,6 +1,6 @@
 chunk_size: 32768
 is_rai: false
-local_cpu: false
+local_cpu: true
 local_disk: null
-max_local_cpu_size: 100
+max_local_cpu_size: 300
 max_local_disk_size: 300
