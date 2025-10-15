@@ -37,11 +37,24 @@ from lmcache.logging import init_logger
 from lmcache.observability import LMCacheStatsLogger, LMCStatsMonitor
 from lmcache.usage_context import InitializeUsageContext
 from lmcache.utils import CacheEngineKey, _lmcache_nvtx_annotate
+import os
+import datetime
+import traceback
 
 logger = init_logger(__name__)
 
 
-
+def log_to_pid_file(message: str, prefix: str = "karamba"):
+    """Log message to a file identified by process ID"""
+    pid = os.getpid()
+    filename = f"{prefix}_pid_{pid}.txt"
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    with open(filename, "a") as f:
+        f.write(f"[{timestamp}] [PID {pid}] {message}\n")
+        f.write("=" * 60 + "\n")
+        traceback.print_stack(file=f)
+        f.write("=" * 60 + "\n")
+        f.write("\n")
 
 # ANSI escape codes for colors
 BRIGHT_GREEN = "\033[92m"
@@ -78,7 +91,7 @@ class LMCacheEngine:
         token_database: TokenDatabase,
         gpu_connector: GPUConnectorInterface,
     ):
-        print(f"LMCacheEngine::__init__")
+        log_to_pid_file(f"LMCacheEngine::__init__")
         logger.info(f"Creating LMCacheEngine with config: {config}")
         self.config = config
         self.metadata = metadata
@@ -177,7 +190,7 @@ class LMCacheEngine:
             memory_obj = self.storage_manager.allocate(kv_shape, kv_dtype)
             put_time += time.perf_counter() - t
             if memory_obj is None:
-                logger.warning("Failed to allocate memory for the KV cache.\n"
+                log_to_pid_file("Failed to allocate memory for the KV cache.\n"
                                "The KV cache will not be stored.")
                 break
 
@@ -229,8 +242,8 @@ class LMCacheEngine:
         """
         # import pdb; pdb.set_trace()
 
-        print(f"LMCacheEngine::store number of tokens to store: {len(tokens)}")
-        print(f"LMCacheEngine::store mask sum is: {torch.sum(mask).item()}")
+        log_to_pid_file(f"LMCacheEngine::store number of tokens to store: {len(tokens)}")
+        log_to_pid_file(f"LMCacheEngine::store mask sum is: {torch.sum(mask).item()}")
 
         # global_vars.total_tokens += len(tokens)
         
@@ -271,7 +284,7 @@ class LMCacheEngine:
             kv_dtype = self.metadata.kv_dtype
             memory_obj = self.storage_manager.allocate(kv_shape, kv_dtype)
             if memory_obj is None:
-                logger.warning("Failed to allocate memory for the KV cache.\n"
+                log_to_pid_file("Failed to allocate memory for the KV cache.\n"
                                "The KV cache will not be stored.")
                 break
 
@@ -320,7 +333,7 @@ class LMCacheEngine:
         else:
             num_required_tokens = len(tokens)
         
-        print(f"LMCacheEngine::retrieve total tokens {len(tokens)} number of tokens to retrieve: {num_required_tokens}")
+        log_to_pid_file(f"LMCacheEngine::retrieve total tokens {len(tokens)} number of tokens to retrieve: {num_required_tokens}")
         
         monitor_req_id = self.stats_monitor.on_retrieve_request(
             num_required_tokens)
@@ -377,7 +390,7 @@ class LMCacheEngine:
         KV to the local CPU memory
         """
         
-        print(f"LMCacheEngine::prefetch number of tokens to prefetch: {len(tokens)}")
+        log_to_pid_file(f"LMCacheEngine::prefetch number of tokens to prefetch: {len(tokens)}")
 
         for start, end, key in self.token_database.process_tokens(
                 tokens, mask):
@@ -401,16 +414,16 @@ class LMCacheEngine:
 
         :return: An int indicating how many prefix tokens are cached.
         """
-        print(f"LMCacheEngine::lookup number of tokens to lookup: {len(tokens)}")
+        log_to_pid_file(f"LMCacheEngine::lookup number of tokens to lookup: {len(tokens)}")
 
 
         end = 0
         for start, end, key in self.token_database.process_tokens(tokens):
             assert isinstance(key, CacheEngineKey)
             if not self.storage_manager.contains(key, search_range):
-                print(f"LMCacheEngine::lookup returned {start}")
+                log_to_pid_file(f"LMCacheEngine::lookup returned {start}")
                 return start
-        print(f"LMCacheEngine::lookup returned {end}")
+        log_to_pid_file(f"LMCacheEngine::lookup returned {end}")
         return end
 
     def clear(
