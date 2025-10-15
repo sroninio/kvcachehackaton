@@ -1,4 +1,4 @@
-chunk_size: 32768
+chunk_size: 4096
 is_rai: false
 local_cpu: true
 local_disk: null

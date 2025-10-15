@@ -186,11 +186,7 @@ def lmcache_should_retrieve(
     assert isinstance(model_input.attn_metadata, FlashAttentionMetadata), \
         "Only FlashAttention backend is supported for now."
 
-    pid = os.getpid()
-    filename = f"puk_pid_{pid}.txt"
-    with open(filename, "a") as f:
-        f.write(f"XXX")
-        f.write("\n")
+    log_to_pid_file("Checking should I retrieve", stack=False)
 
     # model_input doesn't have seq_lens in tp
     # but attn_metadata does
@@ -562,10 +558,12 @@ def lmcache_retrieve_kv(
     assert seq_group_list is not None
 
     chunk_prefill_full_hit = True
+    log_to_pid_file(message="Beginnning retrieve loop", stack=False)
     for seq_group in seq_group_list:
+        log_to_pid_file(message="Beginnning retrieve loop on seq_groups", stack=False)
         seq_ids = seq_group.seq_ids
         for seq_id in seq_ids:
-            log_to_pid_file(message="Beginnning retrieve loop")
+            log_to_pid_file(message="Beginnning retrieve loop on seq_ids", stack=False)
             seq_data = seq_group.seq_data[seq_id]
             is_prefill_list.append(seq_group.is_prompt)
             if retrieve_status[idx] == RetrieveStatus.CHUNK_PREFILL:
@@ -582,6 +580,7 @@ def lmcache_retrieve_kv(
 
             vllm_num_required_tokens = (query_start_loc[idx + 1] -
                                         query_start_loc[idx]).item()
+            log_to_pid_file(message=f"vllm_num_required_tokens: {vllm_num_required_tokens}", stack=False)
             assert isinstance(vllm_num_required_tokens, int)
 
             start_pos = next_start_pos
@@ -610,7 +609,7 @@ def lmcache_retrieve_kv(
             # NOTE: No need to retrieve from lmc if the number of tokens
             # to be retrieved is small
             lmc_chunk_size = engine.config.chunk_size
-            if vllm_num_required_tokens < lmc_chunk_size:
+            if vllm_num_required_tokens < lmc_chunk_size and 1 == 0:
                 num_computed_tokens_list.append(vllm_num_computed_tokens)
                 lmc_num_computed_tokens_list.append(0)
                 idx += 1
@@ -639,11 +638,15 @@ def lmcache_retrieve_kv(
                 slot_mapping_req_full = slot_mapping[start_pos:end_pos]
             # call lmcache retrieve
             log_to_pid_file(message="Retreiving iniside loop", stack=False)
-            ret_token_mask = engine.retrieve(
-                full_token_tensor,
-                token_mask,
-                kvcaches=kv_caches,
-                slot_mapping=slot_mapping_req_full)
+
+            if (0):
+                ret_token_mask = engine.retrieve(
+                    full_token_tensor,
+                    token_mask,
+                    kvcaches=kv_caches,
+                    slot_mapping=slot_mapping_req_full)
+            else:
+                ret_token_mask = torch.ones_like(full_token_tensor, dtype=torch.bool, device="cpu")
             
 
             lmc_num_computed_tokens = max(
@@ -685,6 +688,7 @@ def lmcache_retrieve_kv(
 
             idx += 1
 
+    log_to_pid_file(message="Finishing retrieve loop", stack=False)
     seq_cnt = len(query_start_loc) - 1
     assert idx == seq_cnt
     assert len(lmc_num_computed_tokens_list) == seq_cnt

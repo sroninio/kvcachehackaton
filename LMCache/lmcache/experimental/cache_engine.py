@@ -34,6 +34,7 @@ from lmcache.experimental.storage_backend.storage_manager import (
 from lmcache.experimental.token_database import (ChunkedTokenDatabase,
                                                  TokenDatabase)
 from lmcache.logging import init_logger
+from lmcache.logging import log_to_pid_file 
 from lmcache.observability import LMCacheStatsLogger, LMCStatsMonitor
 from lmcache.usage_context import InitializeUsageContext
 from lmcache.utils import CacheEngineKey, _lmcache_nvtx_annotate
@@ -89,6 +90,7 @@ class LMCacheEngine:
         self.gpu_connector = gpu_connector
 
         self.enable_p2p = config.enable_p2p
+        log_to_pid_file("MAMA", stack=False)
 
         # NOTE: Unix systems use fork by default
         multiprocessing.set_start_method('spawn', force=True)

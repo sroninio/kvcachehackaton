@@ -62,8 +62,8 @@ class VLLM_BENCHMARK:
                  #local_disk = "file:///tmp/abc/",
                  #local_disk = "file:///tmp/abc/",
                  local_disk = None,
-                 chunk_size=32 * 1024,
-                 lmcache_chunk_size=32 * 1024,
+                 chunk_size= 32 * 1024,
+                 lmcache_chunk_size=4 * 1024,
                  token_kv_size=128 * 1024,
                  input_tokens=32 * 1024,
                  output_tokens=128,
@@ -73,7 +73,7 @@ class VLLM_BENCHMARK:
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
                  tp=2,
-                 sessions=40):
+                 sessions=4):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
         self.MAX_LOCAL_DISK_SIZE = max_local_disk_size
