@@ -24,6 +24,7 @@ from lmcache.integration.vllm.utils import ENGINE_NAME, lmcache_get_config
 from lmcache.logging import init_logger
 from lmcache.utils import _lmcache_nvtx_annotate
 import time
+from lmcache.logging import log_to_pid_file
 
 # FIXME(Jiayi): temporarily comment this out
 #from lmcache_vllm.blend_adapter import remove_request_id_indices
@@ -165,21 +166,7 @@ def close_lmcache_engine() -> None:
     logger.debug("Closing LMCache Engine")
     LMCacheEngineBuilder.destroy(ENGINE_NAME)
 
-import os
-import traceback
-import datetime
 
-def log_to_pid_file(message: str, prefix: str = "karamba"):
-    """Log message to a file identified by process ID"""
-    pid = os.getpid()
-    filename = f"{prefix}_pid_{pid}.txt"
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-    with open(filename, "a") as f:
-        f.write(f"[{timestamp}] [PID {pid}] {message}\n")
-        f.write("=" * 60 + "\n")
-        traceback.print_stack(file=f)
-        f.write("=" * 60 + "\n")
-        f.write("\n")
 
 # This function is not used for now
 def lmcache_should_retrieve(
@@ -578,6 +565,7 @@ def lmcache_retrieve_kv(
     for seq_group in seq_group_list:
         seq_ids = seq_group.seq_ids
         for seq_id in seq_ids:
+            log_to_pid_file(message="Beginnning retrieve loop")
             seq_data = seq_group.seq_data[seq_id]
             is_prefill_list.append(seq_group.is_prompt)
             if retrieve_status[idx] == RetrieveStatus.CHUNK_PREFILL:
@@ -616,6 +604,7 @@ def lmcache_retrieve_kv(
                 num_request_not_found += 1
                 idx += 1
                 logger.debug("Injected token number: 0. This is DECODE")
+                log_to_pid_file(message="Quitting bcs decode stage", stack=False)
                 continue
 
             # NOTE: No need to retrieve from lmc if the number of tokens
@@ -626,6 +615,7 @@ def lmcache_retrieve_kv(
                 lmc_num_computed_tokens_list.append(0)
                 idx += 1
                 num_request_not_found += 1
+                log_to_pid_file(message="Quitting bcs smaller than chunk size", stack=False)
                 continue
 
             # construct token mesk to indicate what tokens should be retrieved
@@ -648,6 +638,7 @@ def lmcache_retrieve_kv(
             else:
                 slot_mapping_req_full = slot_mapping[start_pos:end_pos]
             # call lmcache retrieve
+            log_to_pid_file(message="Retreiving iniside loop", stack=False)
             ret_token_mask = engine.retrieve(
                 full_token_tensor,
                 token_mask,

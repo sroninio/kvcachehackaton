@@ -44,17 +44,6 @@ import traceback
 logger = init_logger(__name__)
 
 
-def log_to_pid_file(message: str, prefix: str = "karamba"):
-    """Log message to a file identified by process ID"""
-    pid = os.getpid()
-    filename = f"{prefix}_pid_{pid}.txt"
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-    with open(filename, "a") as f:
-        f.write(f"[{timestamp}] [PID {pid}] {message}\n")
-        f.write("=" * 60 + "\n")
-        traceback.print_stack(file=f)
-        f.write("=" * 60 + "\n")
-        f.write("\n")
 
 # ANSI escape codes for colors
 BRIGHT_GREEN = "\033[92m"
