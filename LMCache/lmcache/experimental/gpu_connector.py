@@ -82,6 +82,7 @@ class VLLMNestedTupleGPUConnector(GPUConnectorInterface):
         :raises ValueError: If 'kvcaches' is not provided in kwargs.
         :raises AssertionError: If the memory object does not have a tensor.
         """
+        print("111111111111111111111111111111111111111111111111111111111111111")
         assert memory_obj.tensor is not None
 
         if memory_obj.metadata.fmt != MemoryFormat.KV_BLOB:
@@ -176,6 +177,7 @@ class VLLMPagedMemGPUConnector(GPUConnectorInterface):
         :raises ValueError: If 'slot_mapping' is not provided in kwargs.
         """
         assert memory_obj.tensor is not None
+        print("2222222222222222222222222222222222222222222222222222222222222222222222222222")
 
         if memory_obj.metadata.fmt != MemoryFormat.KV_BLOB:
             raise ValueError(
@@ -326,6 +328,8 @@ class VLLMPagedMemGPUConnectorV2(GPUConnectorInterface):
         :raises AssertionError: If the memory object does not have a tensor.
         :raises ValueError: If 'slot_mapping' is not provided in kwargs.
         """
+
+        print("3333333333333333333333333333333333333333333333")
         assert memory_obj.tensor is not None
 
         if memory_obj.metadata.fmt != MemoryFormat.KV_BLOB:
@@ -367,8 +371,11 @@ class VLLMPagedMemGPUConnectorV2(GPUConnectorInterface):
         #        slot_mapping[start:end],
         #        kvcaches[0].device, self.page_buffer_size, False)
         start_time = time.perf_counter()
-
-        lmc_ops.multi_layer_kv_transfer(memory_obj.tensor,
+    
+        print(f"SHAPE IS {memory_obj.tensor.size()} NUM TOKENS {end - start}")
+        ll = end-start
+        
+        lmc_ops.multi_layer_kv_transfer(memory_obj.tensor[:,:,:ll,:],
                                         self.kv_cache_pointers,
                                         slot_mapping[start:end],
                                         kvcaches[0].device,

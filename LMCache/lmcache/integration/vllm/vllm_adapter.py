@@ -519,6 +519,7 @@ def lmcache_retrieve_kv(
              entire execute_model should be skipped
     """
 
+    log_to_pid_file("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     engine = LMCacheEngineBuilder.get(ENGINE_NAME)
     assert engine is not None, "LMCache engine is not initialized."
     start_time = time.perf_counter()
@@ -706,7 +707,7 @@ def lmcache_retrieve_kv(
                                                     device=device,
                                                     dtype=dtype)
         logger.debug("Skip the entire model forward!")
-        print(f"ADAPTER1 retreive toook {(time.perf_counter() - start_time):.3f}")
+        log_to_pid_file(f"ADAPTER1 retreive toook {(time.perf_counter() - start_time):.3f}")
         return model_input, True, hidden_or_intermediate_states
 
     if num_request_not_found < seq_cnt:
@@ -723,12 +724,13 @@ def lmcache_retrieve_kv(
             kv_caches[0][0].device,
             cache_config,
         )
-        print(f"REBUILDING MODEL  toook {(time.perf_counter() - x):.3f}")
+        log_to_pid_file(f"REBUILDING MODEL  toook {(time.perf_counter() - x):.3f}")
         logger.debug("Rebuilt the input!")
-        print(f"ADAPTER2 retreive toook {(time.perf_counter() - start_time):.3f}")
+        log_to_pid_file(f"ADAPTER2 retreive toook {(time.perf_counter() - start_time):.3f}")
         return rebuilt_model_input, False, None
     print(f"ADAPTER3 retreive toook {(time.perf_counter() - start_time):.3f}")
     logger.debug("Returning the original input!")
+    log_to_pid_file("=====================================================================================")
     return model_input, False, None
 
 

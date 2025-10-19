@@ -330,6 +330,9 @@ class LMCacheEngine:
             num_required_tokens)
 
         ret_mask = torch.zeros_like(tokens, dtype=torch.bool, device="cpu")
+        #ret_mask[:] = True
+
+    
         for start, end, key in self.token_database.process_tokens(
                 tokens, mask):
 
@@ -362,7 +365,6 @@ class LMCacheEngine:
             # will immediately remove the object from itself
             if isinstance(self.storage_manager, DistributedStorageManager):
                 self.storage_manager.remove(key)
-
         retrieved_tokens = torch.sum(ret_mask)
 
         self.stats_monitor.on_retrieve_finished(monitor_req_id,
