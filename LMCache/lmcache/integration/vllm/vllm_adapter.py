@@ -609,7 +609,7 @@ def lmcache_retrieve_kv(
             # NOTE: No need to retrieve from lmc if the number of tokens
             # to be retrieved is small
             lmc_chunk_size = engine.config.chunk_size
-            if vllm_num_required_tokens < lmc_chunk_size and 1 == 0:
+            if vllm_num_required_tokens < lmc_chunk_size:
                 num_computed_tokens_list.append(vllm_num_computed_tokens)
                 lmc_num_computed_tokens_list.append(0)
                 idx += 1
@@ -639,14 +639,11 @@ def lmcache_retrieve_kv(
             # call lmcache retrieve
             log_to_pid_file(message="Retreiving iniside loop", stack=False)
 
-            if (0):
-                ret_token_mask = engine.retrieve(
-                    full_token_tensor,
-                    token_mask,
-                    kvcaches=kv_caches,
-                    slot_mapping=slot_mapping_req_full)
-            else:
-                ret_token_mask = torch.ones_like(full_token_tensor, dtype=torch.bool, device="cpu")
+            ret_token_mask = engine.retrieve(
+                full_token_tensor,
+                token_mask,
+                kvcaches=kv_caches,
+                slot_mapping=slot_mapping_req_full)
             
 
             lmc_num_computed_tokens = max(

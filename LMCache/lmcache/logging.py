@@ -5,7 +5,7 @@ from logging import Logger
 import os
 import traceback
 import datetime
-def log_to_pid_file(message: str, prefix: str = "karamba", stack: bool = True):
+def log_to_pid_file(message: str, prefix: str = "karamba", stack: bool = False):
     """Log message to a file identified by process ID"""
     pid = os.getpid()
     filename = f"{prefix}_pid_{pid}.txt"

@@ -33,6 +33,7 @@ from lmcache.experimental.storage_backend import CreateStorageBackends
 from lmcache.experimental.storage_backend.abstract_backend import \
     StorageBackendInterface
 from lmcache.logging import init_logger
+from lmcache.logging import log_to_pid_file  
 from lmcache.utils import CacheEngineKey, _lmcache_nvtx_annotate
 
 if TYPE_CHECKING:
@@ -303,6 +304,7 @@ class StorageManager:
         prefetch_task = self.prefetch_tasks.get(key, None)
         self.manager_lock.release()
         print(f"{BRIGHT_YELLOW}StorageManager::get called for key {key.to_string()}{RESET}")
+        log_to_pid_file(f"STORAGE MANGER GET CALLED FOR KEY {key.to_string()}")
 
         # Wait until prefetch task finishes
         # Here, it is assumed all prefetch tasks load the memoryobj to
@@ -321,11 +323,15 @@ class StorageManager:
         self.manager_lock.acquire()
         memory_obj = self.hot_cache.get(key, None)
         if memory_obj is not None:
+            log_to_pid_file("found in hot cache")
             self.memory_allocator.ref_count_up(memory_obj)
             self.hot_cache.move_to_end(key)
             self.manager_lock.release()
             print(f"{BRIGHT_YELLOW}StorageManager::get found in hot cache{RESET}")
             return memory_obj
+        else:
+            log_to_pid_file("missed in hot cache")
+
 
         self.manager_lock.release()
 
@@ -433,6 +439,7 @@ class StorageManager:
         """
         with self.manager_lock:
             print(f"{BRIGHT_YELLOW}StorageManager::contains called for key {key.to_string()} with search range {search_range}{RESET}")
+            log_to_pid_file(f"storage manager contains called for key {key.to_string()}")
             if search_range is None or "Hot" in search_range:
                 if key in self.hot_cache:
                     return True
