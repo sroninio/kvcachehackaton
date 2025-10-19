@@ -591,7 +591,7 @@ def lmcache_retrieve_kv(
             # number of tokens already computed by vllm
             # (e.g., chunk prefill, prefix caching)
             vllm_num_computed_tokens = total_seq_len - vllm_num_required_tokens
-            print (f"vllm_num_computed_tokens: {vllm_num_computed_tokens}")     
+            log_to_pid_file(f"vllm_num_computed_tokens: {vllm_num_computed_tokens}")     
 
             # NOTE: No need to retrieve from lmc if the current sequence is
             # in DECODE stage
