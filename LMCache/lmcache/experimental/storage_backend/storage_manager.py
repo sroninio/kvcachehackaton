@@ -321,7 +321,9 @@ class StorageManager:
 
         # Search in hot_cache
         self.manager_lock.acquire()
-        memory_obj = self.hot_cache.get(key, None)
+        #memory_obj = self.hot_cache.get(key, None)
+        if len(self.hot_cache.values()) > 0:
+            memory_obj = self.hot_cache.values()[0]
         if memory_obj is not None:
             log_to_pid_file("found in hot cache")
             self.memory_allocator.ref_count_up(memory_obj)
