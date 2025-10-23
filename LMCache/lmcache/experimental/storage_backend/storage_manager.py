@@ -321,14 +321,14 @@ class StorageManager:
 
         # Search in hot_cache
         self.manager_lock.acquire()
-        #memory_obj = self.hot_cache.get(key, None)
-        memory_obj = None
-        if len(self.hot_cache.values()) > 0:
-            memory_obj = next(iter(self.hot_cache.values()))
+        memory_obj = self.hot_cache.get(key, None)
+        #memory_obj = None
+        #if len(self.hot_cache.values()) > 0:
+            #memory_obj = next(iter(self.hot_cache.values()))
         if memory_obj is not None:
             log_to_pid_file("found in hot cache")
             self.memory_allocator.ref_count_up(memory_obj)
-            #self.hot_cache.move_to_end(key)
+            self.hot_cache.move_to_end(key)
             self.manager_lock.release()
             print(f"{BRIGHT_YELLOW}StorageManager::get found in hot cache{RESET}")
             return memory_obj

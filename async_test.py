@@ -56,7 +56,7 @@ class Statisics:
          
 class VLLM_BENCHMARK:
     def __init__(self, 
-                 max_local_cpu_size=300,
+                 max_local_cpu_size=50,
                  max_local_disk_size=300,
                  local_cpu=True,
                  #local_disk = "file:///tmp/abc/",
@@ -67,14 +67,14 @@ class VLLM_BENCHMARK:
                  lmcache_chunk_size=32 * 1024,
                  token_kv_size=128 * 1024,
                  input_tokens=32 * 1024,
-                 output_tokens=128,
+                 output_tokens=1,
                  len_word=6,
                  num_iterations=50,
                  with_storage=False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
-                 tp=2,
-                 sessions=40):
+                 tp=8,
+                 sessions=160):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
         self.MAX_LOCAL_DISK_SIZE = max_local_disk_size
@@ -288,7 +288,7 @@ class VLLM_BENCHMARK:
 
 async def main():
     benchmark = VLLM_BENCHMARK()
-    for inflights in [32]:
+    for inflights in [256]:
         print(f"{BOLD_RED}STARTING ITERATION WITH {inflights} INFLIGHTS {RESET}")
         benchmark.statistics.reset()
         benchmark.terminate = False

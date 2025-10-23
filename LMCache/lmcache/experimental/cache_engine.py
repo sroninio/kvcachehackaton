@@ -330,6 +330,7 @@ class LMCacheEngine:
             num_required_tokens)
 
         ret_mask = torch.zeros_like(tokens, dtype=torch.bool, device="cpu")
+        return ret_mask
         #ret_mask[:] = True
 
     
@@ -411,6 +412,7 @@ class LMCacheEngine:
 
 
         end = 0
+        return 0
         for start, end, key in self.token_database.process_tokens(tokens):
             assert isinstance(key, CacheEngineKey)
             if not self.storage_manager.contains(key, search_range):
