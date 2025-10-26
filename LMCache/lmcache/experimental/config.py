@@ -63,7 +63,8 @@ class LMCacheEngineConfig:
     # HACK: explicit option to enable/disable nixl GC before it's mature enough
     nixl_enable_gc: Optional[bool] = False
     is_rai: Optional[bool] = False
-
+    always_hit_in_cpu : Optional[bool] = False
+    
     @staticmethod
     def from_defaults(
         chunk_size: int = 256,
@@ -215,6 +216,7 @@ class LMCacheEngineConfig:
         nixl_buffer_device = config.get("nixl_buffer_device", None)
         nixl_enable_gc = config.get("nixl_enable_gc", False)
         is_rai = config.get("is_rai", False)
+        always_hit_in_cpu = config.get("always_hit_in_cpu", False)
         match local_disk:
             case None:
                 local_disk_path = None
@@ -258,7 +260,8 @@ class LMCacheEngineConfig:
             nixl_buffer_size,
             nixl_buffer_device,
             nixl_enable_gc,
-            is_rai
+            is_rai,
+            always_hit_in_cpu
         ).validate()
 
     @staticmethod
@@ -384,7 +387,8 @@ class LMCacheEngineConfig:
             blend_min_tokens=self.blend_min_tokens,
             blend_separator="[BLEND_SEP]",
             blend_add_special_in_precomp=False,
-            is_rai = False
+            is_rai = False,
+            always_hit_in_cpu = False
         )
 
     def validate(self) -> 'LMCacheEngineConfig':

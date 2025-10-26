@@ -1802,7 +1802,8 @@ class ModelRunner(GPUModelRunnerBase[ModelInputForGPUWithSamplingMetadata]):
                 hidden_or_intermediate_states,
             )
 
-        # Compute the logits in the last pipeline stage.
+        end_send_kv= time.perf_counter() 
+        log_to_pid_file(f"MODEL SEND KV took {(end_send_kv - start_execute_model):.4f}")# Compute the logits in the last pipeline stage.
         if not get_pp_group().is_last_rank:
             if (self.is_driver_worker
                     and hidden_or_intermediate_states is not None

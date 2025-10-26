@@ -128,6 +128,8 @@ class LMCacheEngine:
 
         InitializeUsageContext(config.to_original_config(), metadata)
         self.stats_monitor = LMCStatsMonitor.GetOrCreate()
+        if config.always_hit_in_cpu:
+            self.dummy_tensor = self.storage_manager.allocate(self.gpu_connector.get_shape(32768), self.metadata.kv_dtype)
 
     @_lmcache_nvtx_annotate
     @torch.inference_mode()
@@ -141,6 +143,10 @@ class LMCacheEngine:
 
         This function will be refactored in the future.
         """
+        if self.config.always_hit_in_cpu:
+            log_to_pid_file("I am in store thought shouldnt be her")
+            exit(1)
+
         st = time.perf_counter()
         if mask is not None:
             monitor_req_id = self.stats_monitor.on_store_request(
@@ -232,6 +238,10 @@ class LMCacheEngine:
             multiple of the chunk size.
         """
         # import pdb; pdb.set_trace()
+
+        if self.config.always_hit_in_cpu:
+            log_to_pid_file("I am in store thought shouldnt be her")
+            exit(1)
 
         log_to_pid_file(f"LMCacheEngine::store number of tokens to store: {len(tokens)}")
         log_to_pid_file(f"LMCacheEngine::store mask sum is: {torch.sum(mask).item()}")
@@ -330,8 +340,6 @@ class LMCacheEngine:
             num_required_tokens)
 
         ret_mask = torch.zeros_like(tokens, dtype=torch.bool, device="cpu")
-        return ret_mask
-        #ret_mask[:] = True
 
     
         for start, end, key in self.token_database.process_tokens(
@@ -340,7 +348,7 @@ class LMCacheEngine:
             assert isinstance(key, CacheEngineKey)
 
             # Get the memory object from the storage backend
-            memory_obj = self.storage_manager.get(key)
+            memory_obj = self.dummy_tensor if self.config.always_hit_in_cpu else self.storage_manager.get(key)
 
             if memory_obj is None:
                 if self.enable_p2p:
@@ -359,12 +367,13 @@ class LMCacheEngine:
             # RDMA is another example.
             #breakpoint()
             self.gpu_connector.to_gpu(memory_obj, start, end, **kwargs)
-            self.memory_allocator.ref_count_down(memory_obj)
+            if not self.config.always_hit_in_cpu:
+                self.memory_allocator.ref_count_down(memory_obj)
 
             # NOTE (ApostaC): This is only for the current implementation:
             # When the object is retrieved back to vLLM, the storage backend
             # will immediately remove the object from itself
-            if isinstance(self.storage_manager, DistributedStorageManager):
+            if isinstance(self.storage_manager, DistributedStorageManager) and not self.config.always_hit_in_cpu:
                 self.storage_manager.remove(key)
         retrieved_tokens = torch.sum(ret_mask)
 
@@ -385,6 +394,9 @@ class LMCacheEngine:
         """
         
         log_to_pid_file(f"LMCacheEngine::prefetch number of tokens to prefetch: {len(tokens)}")
+        if self.config.always_hit_in_cpu:
+            log_to_pid_file("I am in prefetch and I shouldnt be here")
+            exit(1)
 
         for start, end, key in self.token_database.process_tokens(
                 tokens, mask):
@@ -412,10 +424,9 @@ class LMCacheEngine:
 
 
         end = 0
-        return 0
         for start, end, key in self.token_database.process_tokens(tokens):
             assert isinstance(key, CacheEngineKey)
-            if not self.storage_manager.contains(key, search_range):
+            if not self.config.always_hit_in_cpu and not self.storage_manager.contains(key, search_range):
                 log_to_pid_file(f"LMCacheEngine::lookup returned {start}")
                 return start
         log_to_pid_file(f"LMCacheEngine::lookup returned {end}")

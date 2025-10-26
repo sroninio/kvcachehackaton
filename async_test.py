@@ -71,6 +71,7 @@ class VLLM_BENCHMARK:
                  len_word=6,
                  num_iterations=50,
                  with_storage=False,
+                 always_hit_in_cpu = False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
                  tp=1,
@@ -82,6 +83,7 @@ class VLLM_BENCHMARK:
         self.LOCAL_DISK = local_disk
         self.CHUNK_SIZE = chunk_size
         self.LMCACHE_CHUNK_SIZE = lmcache_chunk_size
+        self.ALWAYS_HIT_IN_CPU = always_hit_in_cpu
         self.TOKEN_KV_SIZE = token_kv_size
         self.INPUT_TOKENS = input_tokens if input_tokens is not None else chunk_size
         self.OUTPUT_TOKENS = output_tokens
@@ -136,6 +138,7 @@ class VLLM_BENCHMARK:
         # Modify values
         config["is_rai"] = False
         config["chunk_size"] = self.LMCACHE_CHUNK_SIZE
+        config["always_hit_in_cpu"] = self.ALWAYS_HIT_IN_CPU
         config["local_cpu"] = self.LOCAL_CPU
         config["local_disk"] = self.LOCAL_DISK
         config["max_local_disk_size"] = self.MAX_LOCAL_DISK_SIZE

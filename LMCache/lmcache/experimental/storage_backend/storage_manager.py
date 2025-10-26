@@ -41,7 +41,6 @@ if TYPE_CHECKING:
 
 logger = init_logger(__name__)
 
-ALWYAS_FIND = True
 
 
 
@@ -324,17 +323,11 @@ class StorageManager:
 
         # Search in hot_cache
         self.manager_lock.acquire()
-        if not ALWYAS_FIND:
-            memory_obj = self.hot_cache.get(key, None)
-        else:
-            memory_obj = None
-            if len(self.hot_cache.values()) > 0:
-                memory_obj = next(iter(self.hot_cache.values()))
+        memory_obj = self.hot_cache.get(key, None)
         if memory_obj is not None:
             log_to_pid_file("found in hot cache")
             self.memory_allocator.ref_count_up(memory_obj)
-            if not ALWYAS_FIND:
-                self.hot_cache.move_to_end(key)
+            self.hot_cache.move_to_end(key)
             self.manager_lock.release()
             print(f"{BRIGHT_YELLOW}StorageManager::get found in hot cache{RESET}")
             return memory_obj
@@ -447,8 +440,6 @@ class StorageManager:
         return: True if the key exists in the specified storage backends.
         """
         with self.manager_lock:
-            if ALWYAS_FIND:
-                return (len(self.hot_cache) > 0)
             print(f"{BRIGHT_YELLOW}StorageManager::contains called for key {key.to_string()} with search range {search_range}{RESET}")
             log_to_pid_file(f"storage manager contains called for key {key.to_string()}")
             if search_range is None or "Hot" in search_range:
