@@ -417,9 +417,11 @@ def lmcache_store_kv(
                     if seq_len % engine.config.chunk_size != 0:
                         continue
             current_tokens = torch.tensor(seq_data.get_token_ids()[:seq_len],
-                                          device="cpu")
+                                      device="cpu")
 
             skip_leading_tokens = engine.lookup(current_tokens)
+            log_to_pid_file(f"WTF skip_leading_tokens = {skip_leading_tokens}, seq_len = {seq_len}")
+
             assert skip_leading_tokens <= seq_len
 
             vllm_num_required_tokens = (query_start_loc[seq_data_idx + 1] -
@@ -610,8 +612,8 @@ def lmcache_retrieve_kv(
             # NOTE: No need to retrieve from lmc if the number of tokens
             # to be retrieved is small
             lmc_chunk_size = engine.config.chunk_size
-            #if (vllm_num_required_tokens < lmc_chunk_size) and (1==0):
-            if (vllm_num_required_tokens < lmc_chunk_size):
+            if (vllm_num_required_tokens < lmc_chunk_size) and (1==0):
+            #if (vllm_num_required_tokens < lmc_chunk_size):
                 num_computed_tokens_list.append(vllm_num_computed_tokens)
                 lmc_num_computed_tokens_list.append(0)
                 idx += 1
