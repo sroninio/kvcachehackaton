@@ -195,7 +195,7 @@ class VLLM_BENCHMARK:
     async def enter_new_request(self, p, indx):
         import time
         start_time = time.time()
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         if global_vars.backend:
             print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
             self.statistics.curr_disk_inflights += 1
@@ -292,7 +292,7 @@ class VLLM_BENCHMARK:
 
 async def main():
     benchmark = VLLM_BENCHMARK()
-    for inflights in [1]:
+    for inflights in [2]:
         print(f"{BOLD_RED}STARTING ITERATION WITH {inflights} INFLIGHTS {RESET}")
         benchmark.statistics.reset()
         benchmark.terminate = False

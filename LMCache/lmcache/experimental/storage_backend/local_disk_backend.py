@@ -173,7 +173,7 @@ class LocalDiskBackend(StorageBackendInterface):
             log_to_pid_file(f"Memory allocation failed during async disk load.")
             return None
         buffer = memory_obj.byte_array
-        async with aiofiles.open(path, 'rb') as f:
+        async with aiofiles.open(self.path, 'rb') as f:
             await f.readinto(buffer) 
         return memory_obj
     

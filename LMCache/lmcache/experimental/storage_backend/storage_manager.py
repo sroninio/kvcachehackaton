@@ -67,7 +67,7 @@ class StorageManager:
         self.memory_allocator = allocator
         self.hot_cache: OrderedDict[CacheEngineKey, MemoryObj] = OrderedDict()
         self.use_hot = config.local_cpu
-        # self.use_hot = False
+        self.use_hot = False
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self.loop.run_forever)
         self.thread.start()
