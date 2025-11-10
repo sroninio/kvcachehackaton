@@ -177,9 +177,7 @@ class StorageManager:
         storage manager) or has been stored (handled by storage backend).
         """
         self.manager_lock.acquire()
-        print(f"StorgaeManager::put called for data in lenght {memory_obj.get_size()} and {memory_obj.get_shape()}")
-        print(f"STORAGE MANAGER::PUT  KEY={key.to_string()}")
-        #import ipdb; ipdb.set_trace()
+        log_to_pid_file(f"STORAGE MANAGER PUT key={key}")
         if self.use_hot:
             # During overwrite, we need to free the old memory object
             # to avoid memory leak.

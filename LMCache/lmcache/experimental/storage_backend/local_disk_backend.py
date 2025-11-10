@@ -86,6 +86,7 @@ class LocalDiskBackend(StorageBackendInterface):
     
 
     async def prefetch_async(self, keys):
+        log_to_pid_file(f"LDB IN PREFETCH ASYNC")
         self.disk_lock.acquire()
         tasks = []
         for key in keys:
@@ -173,14 +174,14 @@ class LocalDiskBackend(StorageBackendInterface):
         return
 
     def exists_in_put_tasks(self, key: CacheEngineKey) -> bool:
-        assert 1==0, "in put tasks"
+        log_to_pid_file(f"LDB CHECKS IF EXISTS IN PUT TASKS = {key}")
         return False
 
     def submit_prefetch_task(
         self,
         key: CacheEngineKey,
     ) -> Optional[Future]:
-        assert 1==0, "in submit"
+        log_to_pid_file(f"LDB IN SUBMITTING PREFETCH TASK (SHOULDNT BE HERE)= {key}")
         return None
 
 

@@ -196,6 +196,8 @@ class VLLM_BENCHMARK:
         import time
         start_time = time.time()
         if global_vars.backend:
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            exit(1)
             self.statistics.curr_disk_inflights += 1
             for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
                 if mem_obj:
