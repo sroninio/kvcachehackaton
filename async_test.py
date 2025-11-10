@@ -188,8 +188,8 @@ class VLLM_BENCHMARK:
                 pickle.dump(prompts, f)
         return prompts
 
-    async def execute_single_request_in_llm(self,  req,  indx):
-        async for output in self.engine.generate(req, sampling_params=self.sampling_params, request_id=indx):
+    async def execute_single_request_in_llm(self,  req,  indx, sampling_params):
+        async for output in self.engine.generate(req, sampling_params=sampling_params, request_id=indx):
             pass 
 
     async def enter_new_request(self, p, indx):
@@ -204,7 +204,7 @@ class VLLM_BENCHMARK:
         self.statistics.curr_llm_inflights += 1
         
         print(f"{BOLD_RED}STARTING ASYNC EXECUTION INDX {indx}{RESET}")
-        await self.execute_single_request_in_llm(p["req"], indx)
+        await self.execute_single_request_in_llm(p["req"], indx, self.sampling_params)
         print(f"{BOLD_RED}FINISHING ASYNC EXECUTION INDX {indx} {RESET}")
 
         if global_vars.backend:
@@ -221,9 +221,14 @@ class VLLM_BENCHMARK:
         print (f"GETTING KEYS OF EACH PROMPT")
         for indx, p in enumerate(prompts):
             global_vars.chunk_hashes_of_curr_batch = []
-            await self.execute_single_request_in_llm(p["req"], indx)
+            await self.execute_single_request_in_llm(p["req"], indx, SamplingParams(max_tokens=1, min_tokens=1, ignore_eos=True))
             p["keys"] = global_vars.chunk_hashes_of_curr_batch
         print (f"FINISHED GETING KEYS OF EACH PROMPT")
+
+
+
+
+
 
     async def update_statistics(self):
         await asyncio.sleep(0.1)
