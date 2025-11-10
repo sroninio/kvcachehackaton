@@ -39,10 +39,6 @@ if TYPE_CHECKING:
 
 logger = init_logger(__name__)
 
-BRIGHT_GREEN = "\033[92m"
-BRIGHT_BLUE = "\033[94m"
-BRIGHT_YELLOW = "\033[93m"
-RESET = "\033[0m"
 
 class LocalDiskBackend(StorageBackendInterface):
 
@@ -59,10 +55,12 @@ class LocalDiskBackend(StorageBackendInterface):
         log_to_pid_file(f"INIT LOCAL DISK BACKEND")
         self.prefetched = defaultdict(lambda: None) # key->mem_obj
         self.disk_lock = threading.Lock()
-        assert config.local_disk is not None
-        self.path: str = config.local_disk
+        #assert config.local_disk is not None
+        #self.path: str = config.local_disk
+        self.path: str = "/tmp/kvcache.bin"
         if not os.path.exists(self.path):
             log_to_pid_file("ERROR:BAD FILE")
+            exit(1)
         self.loop = loop
         self.memory_allocator = memory_allocator
 
@@ -78,7 +76,7 @@ class LocalDiskBackend(StorageBackendInterface):
         key: CacheEngineKey,
         memory_obj: MemoryObj,
     ) -> Optional[Future]:
-        log_to_pid_file(f"IN SUBMIT PUT TASK key = {key}")
+        log_to_pid_file(f"LDB IN SUBMIT PUT TASK key = {key}")
         assert memory_obj.tensor is not None
         global_vars.chunk_hashes_of_curr_batch.append(key)        
         self.memory_allocator.ref_count_up(memory_obj)
@@ -88,10 +86,10 @@ class LocalDiskBackend(StorageBackendInterface):
     
 
     async def prefetch_async(self, keys):
-        print(f"{BRIGHT_YELLOW}LocalDiskBackend::prefetch called for keys {keys}{RESET}")
         self.disk_lock.acquire()
         tasks = []
         for key in keys:
+            log_to_pid_file(f"LDB IN PREFETCH ASYNC key = {key}")
             assert key in self.dict
             self.evictor.update_on_hit(key, self.dict)
             path = self.dict[key].path
@@ -125,10 +123,12 @@ class LocalDiskBackend(StorageBackendInterface):
         """
         Blocking get function.
         """
-        print(f"{BRIGHT_YELLOW}LocalDiskBackend::get_blocking called for key {key.to_string()}{RESET}")
-        log_to_pid_file(f"IN GET BLOCKING key = {key}")
+        log_to_pid_file(f"LDB IN GET BLOCKING key = {key}")
         with self.disk_lock:
-            return self.prefetched[key]
+            ret = self.prefetched[key]
+            log_to_pid_file(f"LDB GET BLOCKING FOUND = {ret != None}")
+            return ret
+
     
     
 
@@ -168,3 +168,19 @@ class LocalDiskBackend(StorageBackendInterface):
         async with aiofiles.open(path, 'rb') as f:
             await f.readinto(buffer) 
         return memory_obj
+    
+    def close(self):
+        return
+
+    def exists_in_put_tasks(self, key: CacheEngineKey) -> bool:
+        assert 1==0, "in put tasks"
+        return False
+
+    def submit_prefetch_task(
+        self,
+        key: CacheEngineKey,
+    ) -> Optional[Future]:
+        assert 1==0, "in submit"
+        return None
+
+
