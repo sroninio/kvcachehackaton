@@ -54,6 +54,7 @@ class LMCacheEngineConfig:
     blend_separator: str  # the separator for blending
     blend_add_special_in_precomp: bool
     is_rai: bool
+    always_hit_in_cpu: bool
     # whether to add special tokens in pre-computations
 
     @staticmethod
@@ -70,13 +71,14 @@ class LMCacheEngineConfig:
             blend_min_tokens: int = 256,
             blend_separator: str = blend_default_separator,
             blend_add_special_in_precomp: bool = False,
-            is_rai: bool = False
+            is_rai: bool = False,
+            always_hit_in_cpu: bool = False
     ) -> "LMCacheEngineConfig":
         return LMCacheEngineConfig(
             chunk_size, local_device, max_local_cache_size, remote_url,
             remote_serde, pipelined_backend, save_decode_cache,
             enable_blending, blend_recompute_ratio, blend_min_tokens,
-            blend_separator, blend_add_special_in_precomp, is_rai)
+            blend_separator, blend_add_special_in_precomp, is_rai, always_hit_in_cpu)
 
     @staticmethod
     def from_legacy(
@@ -116,7 +118,8 @@ class LMCacheEngineConfig:
             blend_min_tokens=256,
             blend_separator=blend_default_separator,
             blend_add_special_in_precomp=False,
-            is_rai = False
+            is_rai = False,
+            always_hit_in_cpu = False
         )
 
     @staticmethod
@@ -142,6 +145,7 @@ class LMCacheEngineConfig:
         blend_add_special_in_precomp = config.get(
             "blend_add_special_in_precomp", False)
         is_rai = config.get("is_rai", False)
+        always_hit_in_cpu = config.get("always_hit_in_cpu", False)
 
         match local_device:
             case "cpu" | "cuda" | None:
@@ -174,7 +178,8 @@ class LMCacheEngineConfig:
             blend_min_tokens,
             blend_separator,
             blend_add_special_in_precomp,
-            is_rai
+            is_rai,
+            always_hit_in_cpu
         )
 
     @staticmethod
@@ -229,6 +234,7 @@ class LMCacheEngineConfig:
         config.blend_separator = parse_env(get_env_name("blend_separator"),
                                            config.blend_separator)
         config.is_rai = False
+        config.always_hit_in_cpu = False
         config.blend_add_special_in_precomp = bool(
             parse_env(get_env_name("blend_add_special_in_precomp"),
                       config.blend_add_special_in_precomp))

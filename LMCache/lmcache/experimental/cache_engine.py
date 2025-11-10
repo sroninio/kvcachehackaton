@@ -334,7 +334,7 @@ class LMCacheEngine:
         else:
             num_required_tokens = len(tokens)
         
-        log_to_pid_file(f"LMCacheEngine::retrieve total tokens {len(tokens)} number of tokens to retrieve: {num_required_tokens}")
+        log_to_pid_file(f"LMCacheEngine::want to retrieve : {num_required_tokens} is_mask {(mask != None)}")
         
         monitor_req_id = self.stats_monitor.on_retrieve_request(
             num_required_tokens)
@@ -376,6 +376,7 @@ class LMCacheEngine:
             if isinstance(self.storage_manager, DistributedStorageManager) and not self.config.always_hit_in_cpu:
                 self.storage_manager.remove(key)
         retrieved_tokens = torch.sum(ret_mask)
+        log_to_pid_file(f"LMCacheEngine::retrieve retrieved {retrieved_tokens}")
 
         self.stats_monitor.on_retrieve_finished(monitor_req_id,
                                                 torch.sum(ret_mask))

@@ -56,26 +56,22 @@ class Statisics:
          
 class VLLM_BENCHMARK:
     def __init__(self, 
-                 max_local_cpu_size=200,
+                 max_local_cpu_size=20,
                  max_local_disk_size=300,
                  local_cpu=True,
                  #local_disk = "file:///tmp/abc/",
-                 #local_disk = "file:///tmp/abc/",
-                 local_disk = None,
+                 local_disk = "file:///tmp/abc/",
                  #chunk_size= 3 * 32 * 1024 + 1024,
                  chunk_size= 32 * 1024,
                  lmcache_chunk_size=32 * 1024,
-                 token_kv_size=128 * 1024,
-                 input_tokens=32 * 1024,
-                 output_tokens=1,
+                 input_tokens = 32 * 1024,
+                 output_tokens = 1024,
                  len_word=6,
-                 num_iterations=50,
-                 with_storage=False,
                  always_hit_in_cpu = False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
-                 tp=1,
-                 sessions=40):
+                 tp=2,
+                 sessions=50):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
         self.MAX_LOCAL_DISK_SIZE = max_local_disk_size
@@ -84,12 +80,9 @@ class VLLM_BENCHMARK:
         self.CHUNK_SIZE = chunk_size
         self.LMCACHE_CHUNK_SIZE = lmcache_chunk_size
         self.ALWAYS_HIT_IN_CPU = always_hit_in_cpu
-        self.TOKEN_KV_SIZE = token_kv_size
         self.INPUT_TOKENS = input_tokens if input_tokens is not None else chunk_size
         self.OUTPUT_TOKENS = output_tokens
         self.LEN_WORD = len_word
-        self.NUM_ITERATIONS = num_iterations
-        self.WITH_STORAGE = with_storage
         self.GPU_MEM_UTILIZATION_RATIO = gpu_mem_utilization_ratio
         self.GPU_MEM = gpu_mem
         self.TP = tp
@@ -159,13 +152,14 @@ class VLLM_BENCHMARK:
 
         engine_args = AsyncEngineArgs(
             model="/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct",
+            #model = "/workspace/llm_models/llama-3.3-models/Llama-3.3-70B-Instruct",
             kv_transfer_config=KVTransferConfig(
                 kv_connector="LMCacheConnector",
                 kv_role="kv_both",
                 lmcache_config=lmcache_config
             ),
             gpu_memory_utilization=self.GPU_MEM_UTILIZATION_RATIO,
-            max_model_len=100000,
+            max_model_len=50000,
             tensor_parallel_size=self.TP,
             enable_prefix_caching=True,
             max_num_batched_tokens=self.CHUNK_SIZE,
@@ -291,7 +285,7 @@ class VLLM_BENCHMARK:
 
 async def main():
     benchmark = VLLM_BENCHMARK()
-    for inflights in [32]:
+    for inflights in [256]:
         print(f"{BOLD_RED}STARTING ITERATION WITH {inflights} INFLIGHTS {RESET}")
         benchmark.statistics.reset()
         benchmark.terminate = False

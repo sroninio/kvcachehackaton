@@ -1,6 +1,7 @@
+always_hit_in_cpu: false
 chunk_size: 32768
 is_rai: false
 local_cpu: true
-local_disk: null
-max_local_cpu_size: 200
+local_disk: file:///tmp/abc/
+max_local_cpu_size: 20
 max_local_disk_size: 300

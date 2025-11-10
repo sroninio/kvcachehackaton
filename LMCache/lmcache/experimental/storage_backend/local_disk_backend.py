@@ -32,6 +32,7 @@ from lmcache.logging import init_logger
 from lmcache.observability import LMCStatsMonitor
 from lmcache.utils import (CacheEngineKey, DiskCacheMetadata,
                            _lmcache_nvtx_annotate)
+from lmcache.logging import log_to_pid_file  
 
 if TYPE_CHECKING:
     from lmcache.experimental.cache_controller.worker import LMCacheWorker
@@ -54,7 +55,8 @@ class LocalDiskBackend(StorageBackendInterface):
         lmcache_worker: Optional["LMCacheWorker"] = None,
         lookup_server: Optional[LookupServerInterface] = None,
     ):
-        # print(f"{BRIGHT_YELLOW}=========== LocalDiskBackend::init ==========={RESET}")
+
+        log_to_pid_file(f"INIT LOCAL DISK BACKEND")
         self.dict: OrderedDict[CacheEngineKey,
                                DiskCacheMetadata] = OrderedDict()
         self.dst_device = dst_device
@@ -152,6 +154,7 @@ class LocalDiskBackend(StorageBackendInterface):
         key: CacheEngineKey,
         memory_obj: MemoryObj,
     ) -> Optional[Future]:
+        log_to_pid_file(f"IN SUBMIT PUT TASK key = {key}")
         assert memory_obj.tensor is not None
         # print(f"{BRIGHT_YELLOW}LocalDiskBackend::submit_put_task called for key {key.to_string()}{RESET}")
         global_vars.chunk_hashes_of_curr_batch.append(key)        
@@ -285,6 +288,7 @@ class LocalDiskBackend(StorageBackendInterface):
         Blocking get function.
         """
         print(f"{BRIGHT_YELLOW}LocalDiskBackend::get_blocking called for key {key.to_string()}{RESET}")
+        log_to_pid_file(f"IN GET BLOCKING key = {key}")
         self.disk_lock.acquire()
         if key in self.prefetched:
             ret = self.prefetched[key]

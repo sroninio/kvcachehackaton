@@ -196,12 +196,14 @@ def lmcache_should_retrieve(
     retrieve_status = [RetrieveStatus.NONE] * num_seqs
     has_engine = LMCacheEngineBuilder.get(ENGINE_NAME) is not None
     if not has_engine:
+        log_to_pid_file(f"1 to retrieve = {retrieve_status}")
         return retrieve_status
 
     attn_meta = model_input.attn_metadata
 
     prefill_exist = (attn_meta.num_prefills > 0)
     if not prefill_exist:
+        log_to_pid_file(f"2 to retrieve = {retrieve_status}")
         return retrieve_status
     assert model_input.sampling_metadata is not None
     seq_group_list = model_input.sampling_metadata.seq_groups
@@ -231,7 +233,7 @@ def lmcache_should_retrieve(
             retrieve_status[seq_data_idx:seq_data_idx_end] =\
                 [RetrieveStatus.PREFILL] * num_seqs_in_seq_group
             seq_data_idx = seq_data_idx_end
-
+    log_to_pid_file(f"3 to retrieve = {retrieve_status}")
     return retrieve_status
 
 
@@ -420,7 +422,6 @@ def lmcache_store_kv(
                                       device="cpu")
 
             skip_leading_tokens = engine.lookup(current_tokens)
-            log_to_pid_file(f"WTF skip_leading_tokens = {skip_leading_tokens}, seq_len = {seq_len}")
 
             assert skip_leading_tokens <= seq_len
 
@@ -524,7 +525,6 @@ def lmcache_retrieve_kv(
     log_to_pid_file("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     engine = LMCacheEngineBuilder.get(ENGINE_NAME)
     assert engine is not None, "LMCache engine is not initialized."
-    start_time = time.perf_counter()
 
     if engine.config.enable_blending:
         return model_input, False, None
@@ -563,10 +563,10 @@ def lmcache_retrieve_kv(
     chunk_prefill_full_hit = True
     log_to_pid_file(message="Beginnning retrieve loop", stack=False)
     for seq_group in seq_group_list:
-        log_to_pid_file(message="Beginnning retrieve loop on seq_groups", stack=False)
+        #log_to_pid_file(message="Beginnning retrieve loop on seq_groups", stack=False)
         seq_ids = seq_group.seq_ids
         for seq_id in seq_ids:
-            log_to_pid_file(message="Beginnning retrieve loop on seq_ids", stack=False)
+            #log_to_pid_file(message="Beginnning retrieve loop on seq_ids", stack=False)
             seq_data = seq_group.seq_data[seq_id]
             is_prefill_list.append(seq_group.is_prompt)
             if retrieve_status[idx] == RetrieveStatus.CHUNK_PREFILL:
@@ -583,7 +583,6 @@ def lmcache_retrieve_kv(
 
             vllm_num_required_tokens = (query_start_loc[idx + 1] -
                                         query_start_loc[idx]).item()
-            log_to_pid_file(message=f"vllm_num_required_tokens: {vllm_num_required_tokens}", stack=False)
             assert isinstance(vllm_num_required_tokens, int)
 
             start_pos = next_start_pos
@@ -594,7 +593,7 @@ def lmcache_retrieve_kv(
             # number of tokens already computed by vllm
             # (e.g., chunk prefill, prefix caching)
             vllm_num_computed_tokens = total_seq_len - vllm_num_required_tokens
-            log_to_pid_file(f"vllm_num_computed_tokens: {vllm_num_computed_tokens}")     
+            log_to_pid_file(f"total_seq_len: {total_seq_len}, vllm_num_required_tokens: {vllm_num_required_tokens}, is_decode: {retrieve_status[idx] == RetrieveStatus.NONE}")     
 
             # NOTE: No need to retrieve from lmc if the current sequence is
             # in DECODE stage
@@ -606,7 +605,7 @@ def lmcache_retrieve_kv(
                 num_request_not_found += 1
                 idx += 1
                 logger.debug("Injected token number: 0. This is DECODE")
-                log_to_pid_file(message="Quitting bcs decode stage", stack=False)
+                #log_to_pid_file(message="Quitting bcs decode stage", stack=False)
                 continue
 
             # NOTE: No need to retrieve from lmc if the number of tokens
@@ -617,7 +616,7 @@ def lmcache_retrieve_kv(
                 lmc_num_computed_tokens_list.append(0)
                 idx += 1
                 num_request_not_found += 1
-                log_to_pid_file(message="Quitting bcs smaller than chunk size", stack=False)
+                #log_to_pid_file(message="Quitting bcs smaller than chunk size", stack=False)
                 continue
 
             # construct token mesk to indicate what tokens should be retrieved
@@ -640,7 +639,6 @@ def lmcache_retrieve_kv(
             else:
                 slot_mapping_req_full = slot_mapping[start_pos:end_pos]
             # call lmcache retrieve
-            log_to_pid_file(message="Retreiving iniside loop", stack=False)
 
             ret_token_mask = engine.retrieve(
                 full_token_tensor,
@@ -709,7 +707,6 @@ def lmcache_retrieve_kv(
                                                     device=device,
                                                     dtype=dtype)
         logger.debug("Skip the entire model forward!")
-        log_to_pid_file(f"ADAPTER1 retreive toook {(time.perf_counter() - start_time):.3f}")
         return model_input, True, hidden_or_intermediate_states
 
     if num_request_not_found < seq_cnt:
@@ -726,11 +723,8 @@ def lmcache_retrieve_kv(
             kv_caches[0][0].device,
             cache_config,
         )
-        log_to_pid_file(f"REBUILDING MODEL  toook {(time.perf_counter() - x):.3f}")
         logger.debug("Rebuilt the input!")
-        log_to_pid_file(f"ADAPTER2 retreive toook {(time.perf_counter() - start_time):.3f}")
         return rebuilt_model_input, False, None
-    print(f"ADAPTER3 retreive toook {(time.perf_counter() - start_time):.3f}")
     logger.debug("Returning the original input!")
     log_to_pid_file("=====================================================================================")
     return model_input, False, None
