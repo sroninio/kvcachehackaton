@@ -70,8 +70,8 @@ class VLLM_BENCHMARK:
                  always_hit_in_cpu = False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
-                 tp=2,
-                 sessions=50):
+                 tp=1,
+                 sessions=30):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
         self.MAX_LOCAL_DISK_SIZE = max_local_disk_size
@@ -195,9 +195,9 @@ class VLLM_BENCHMARK:
     async def enter_new_request(self, p, indx):
         import time
         start_time = time.time()
+        import ipdb; ipdb.set_trace()
         if global_vars.backend:
             print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-            exit(1)
             self.statistics.curr_disk_inflights += 1
             for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
                 if mem_obj:
@@ -292,7 +292,7 @@ class VLLM_BENCHMARK:
 
 async def main():
     benchmark = VLLM_BENCHMARK()
-    for inflights in [256]:
+    for inflights in [1]:
         print(f"{BOLD_RED}STARTING ITERATION WITH {inflights} INFLIGHTS {RESET}")
         benchmark.statistics.reset()
         benchmark.terminate = False

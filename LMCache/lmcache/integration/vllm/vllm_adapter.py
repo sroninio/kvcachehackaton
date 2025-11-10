@@ -611,6 +611,7 @@ def lmcache_retrieve_kv(
             # NOTE: No need to retrieve from lmc if the number of tokens
             # to be retrieved is small
             lmc_chunk_size = engine.config.chunk_size
+            log_to_pid_file(f"always hit = {engine.config.always_hit_in_cpu}, lmc_chunk_size={lmc_chunk_size}, vllm_num_required_tokens = {vllm_num_required_tokens}")
             if (vllm_num_required_tokens < lmc_chunk_size) and not engine.config.always_hit_in_cpu:
                 num_computed_tokens_list.append(vllm_num_computed_tokens)
                 lmc_num_computed_tokens_list.append(0)

@@ -63,6 +63,8 @@ class LocalDiskBackend(StorageBackendInterface):
             exit(1)
         self.loop = loop
         self.memory_allocator = memory_allocator
+        self.dtype = None
+        self.shape = None
 
     def __str__(self):
         return self.__class__.__name__
@@ -78,10 +80,19 @@ class LocalDiskBackend(StorageBackendInterface):
     ) -> Optional[Future]:
         log_to_pid_file(f"LDB IN SUBMIT PUT TASK key = {key}")
         assert memory_obj.tensor is not None
+        to_store = True
+
+        dtype, shape = memory_obj.metadata.dtype, memory_obj.metadata.shape
+        if (self.dtype and (self.dtype != dtype)) or (self.shape and (self.shape != shape)):
+            log_to_pid_file(f"LDB GOT DIFFERENT MEM OBJECTS DTYPE OR SHAPE")
+            to_store = False
+        else:
+            self.dtype = dtype
+            self.shape = shape
         global_vars.chunk_hashes_of_curr_batch.append(key)        
         self.memory_allocator.ref_count_up(memory_obj)
         future = asyncio.run_coroutine_threadsafe(
-            self.async_save_bytes_to_disk(key, memory_obj), self.loop)
+            self.async_save_bytes_to_disk(key, memory_obj, to_store), self.loop)
         return future
     
 
@@ -91,14 +102,7 @@ class LocalDiskBackend(StorageBackendInterface):
         tasks = []
         for key in keys:
             log_to_pid_file(f"LDB IN PREFETCH ASYNC key = {key}")
-            assert key in self.dict
-            self.evictor.update_on_hit(key, self.dict)
-            path = self.dict[key].path
-            dtype = self.dict[key].dtype
-            shape = self.dict[key].shape 
-            assert dtype is not None
-            assert shape is not None 
-            tasks.append(asyncio.create_task(self.async_load_bytes_from_disk(path, dtype, shape)))
+            tasks.append(asyncio.create_task(self.async_load_bytes_from_disk()))
         self.disk_lock.release()
         return await asyncio.gather(*tasks)
 
@@ -141,31 +145,32 @@ class LocalDiskBackend(StorageBackendInterface):
         self,
         key: CacheEngineKey,
         memory_obj: MemoryObj,
+        to_store: bool
     ) -> None:
         """
         Convert KV to bytes and async store bytes to disk.
         """
-        byte_array = memory_obj.byte_array
-        async with aiofiles.open(self.path, 'r+b') as f:
-            await f.seek(0)  # Move to offset 0
-            await f.write(byte_array)
+        if to_store:
+            byte_array = memory_obj.byte_array
+            async with aiofiles.open(self.path, 'r+b') as f:
+                await f.seek(0)  # Move to offset 0
+                await f.write(byte_array)
         self.memory_allocator.ref_count_down(memory_obj)
 
 
     # TODO(Jiayi): use `bytes_read = await f.readinto(buffer)`
     # for better performance (i.e., fewer copy)
-    async def async_load_bytes_from_disk(
-        self,
-        path: str,
-        dtype: torch.dtype,
-        shape: torch.Size,
-    ) -> Optional[MemoryObj]:
+    async def async_load_bytes_from_disk(self) -> Optional[MemoryObj]:
         """
         Async load bytearray from disk.
         """
-        memory_obj = self.memory_allocator.allocate(shape, dtype)
+        if (not self.shape) or (not self.dtype):
+            log_to_pid_file(f"LDB ASYNC LOADING WITHOUT SHAPES")
+            exit(1)
+
+        memory_obj = self.memory_allocator.allocate(self.shape, self.dtype)
         if memory_obj is None:
-            logger.debug("Memory allocation failed during async disk load.")
+            log_to_pid_file(f"Memory allocation failed during async disk load.")
             return None
         buffer = memory_obj.byte_array
         async with aiofiles.open(path, 'rb') as f:
