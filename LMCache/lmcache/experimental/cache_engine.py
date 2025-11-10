@@ -428,9 +428,9 @@ class LMCacheEngine:
         for start, end, key in self.token_database.process_tokens(tokens):
             assert isinstance(key, CacheEngineKey)
             if not self.config.always_hit_in_cpu and not self.storage_manager.contains(key, search_range):
-                log_to_pid_file(f"LMCacheEngine::lookup returned {start}")
+                log_to_pid_file(f"LMCacheEngine::lookup broke and returned {start}")
                 return start
-        log_to_pid_file(f"LMCacheEngine::lookup returned {end}")
+        log_to_pid_file(f"LMCacheEngine::lookup finished and returned {end}")
         return end
 
     def clear(

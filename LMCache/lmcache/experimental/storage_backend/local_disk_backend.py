@@ -69,7 +69,7 @@ class LocalDiskBackend(StorageBackendInterface):
 
     def contains(self, key: CacheEngineKey) -> bool:
         with self.disk_lock:
-            return key in self.prefetched
+            return True if self.prefetched[key] != None else False
 
     def submit_put_task(
         self,
@@ -105,6 +105,7 @@ class LocalDiskBackend(StorageBackendInterface):
 
     def add_to_prefetched(self, key, mem_obj):
         self.disk_lock.acquire()
+        log_to_pid_file(f"LDB adding to prefetched key = {key}")
         self.prefetched[key] = mem_obj
         self.disk_lock.release()
 
@@ -113,6 +114,7 @@ class LocalDiskBackend(StorageBackendInterface):
         self.disk_lock.acquire()
         if key in self.prefetched:
             self.memory_allocator.free(self.prefetched[key]) 
+            log_to_pid_file(f"LDB removing from prefetched key = {key}")
             del self.prefetched[key] 
         self.disk_lock.release()
 

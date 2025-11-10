@@ -442,15 +442,15 @@ class StorageManager:
             log_to_pid_file(f"storage manager contains called for key {key.to_string()}")
             if search_range is None or "Hot" in search_range:
                 if key in self.hot_cache:
+                    log_to_pid_file(f"storage manager returns true bcs in hot cache")
                     return True
 
             for backend_name, backend in self.storage_backends.items():
-                if search_range is not None and \
-                    backend_name not in search_range:
+                if search_range is not None and backend_name not in search_range:
                     continue
                 if backend.contains(key):
+                    log_to_pid_file(f"storage manager returns true bcs backend has it")
                     return True
-
             return False
 
     def remove(
