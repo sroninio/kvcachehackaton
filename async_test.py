@@ -90,8 +90,8 @@ class VLLM_BENCHMARK:
         self.GPU_MEM_UTILIZATION_RATIO = gpu_mem_utilization_ratio
         self.GPU_MEM = gpu_mem
         self.TP = tp
-        self.CONVERSATIONS = conversations,
-        self.STEPS = steps,
+        self.CONVERSATIONS = conversations
+        self.STEPS = steps
 
         self.statistics = Statisics(self)
         self.terminate = False
