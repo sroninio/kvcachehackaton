@@ -31,7 +31,7 @@ class Statisics:
         self.reset()
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         timestamp_str = timestamp.replace(" ", "_").replace(":", "-")
-        self.filename = f"statistics_{timestamp_str}_tp_{test.TP}_chunk{test.CHUNK_SIZE}_input{test.INPUT_TOKENS}_output{test.OUTPUT_TOKENS}_CONVERSATIONS{test.CONVERSATIONS}_STEPS{test.STEPS}"
+        self.filename = f"statistics_{timestamp_str}_tp_{test.TP}_chunk{test.CHUNK_SIZE}_input{test.INPUT_TOKENS}_output{test.OUTPUT_TOKENS}_sessions{test.SESSIONS}"
 
     def reset(self):
         self.curr_disk_inflights = 0
@@ -261,16 +261,22 @@ class VLLM_BENCHMARK:
         with open(self.statistics.filename, "a") as f:
             f.write(f"{stats_entry}\n")
         
-    async def run_benchmark(self, MAX_INFLGITHS, NUM_ITERATIONS):
-        raw_prompts = self.create_prompts()
-        await self.add_hash_keys_to_prompts(raw_prompts)
+    def convert_promts_to_conversations(self, raw_prompts):
         prompts = []
         for i in range(len(raw_prompts)):
             if i % self.STEPS == 0:
-                raw_prompts.append(list())
-            aggr = '' if i % self.STEPS == 0 else prompts[-1][-1]
-            prompts[-1].append(aggr + raw_prompts[i]) 
+                prompts.append([raw_prompts[i]])
+            else:
+                last = prompts[-1][-1]  # Get the last dict from the current conversation
+                curr = raw_prompts[i]
+                next = {'req':last['req'] + curr['req'], 'keys':last['keys'] + curr['keys'] }
+                prompts[-1].append(next)
+        return prompts
 
+    async def run_benchmark(self, MAX_INFLGITHS, NUM_ITERATIONS):
+        raw_prompts = self.create_prompts()
+        await self.add_hash_keys_to_prompts(raw_prompts)
+        prompts = self.convert_promts_to_conversations(raw_prompts)
         running, inflights = set(), 0
         start_time = time.time() 
         
