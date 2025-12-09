@@ -387,8 +387,7 @@ class LMCacheEngineConfig:
             blend_min_tokens=self.blend_min_tokens,
             blend_separator="[BLEND_SEP]",
             blend_add_special_in_precomp=False,
-            is_rai = False,
-            always_hit_in_cpu = False
+            is_rai = False
         )
 
     def validate(self) -> 'LMCacheEngineConfig':

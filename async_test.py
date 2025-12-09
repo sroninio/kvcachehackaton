@@ -60,22 +60,21 @@ class VLLM_BENCHMARK:
                  max_local_disk_size=300,
                  local_cpu=True,
                  #local_disk = "file:///tmp/abc/",
-                 #local_disk = "file:///tmp/abc/",
                  local_disk = None,
                  #chunk_size= 3 * 32 * 1024 + 1024,
                  chunk_size= 32 * 1024,
                  lmcache_chunk_size=32 * 1024,
-                 token_kv_size=128 * 1024,
                  input_tokens=32 * 1024,
                  output_tokens=1,
                  len_word=6,
                  num_iterations=50,
-                 with_storage=False,
                  always_hit_in_cpu = False,
                  gpu_mem_utilization_ratio=0.6,
                  gpu_mem=80 * 1024 * 1024 * 1024,
                  tp=1,
-                 sessions=40):
+                 conversations=1,
+                 steps = 1
+                 ):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
         self.MAX_LOCAL_DISK_SIZE = max_local_disk_size
@@ -84,16 +83,16 @@ class VLLM_BENCHMARK:
         self.CHUNK_SIZE = chunk_size
         self.LMCACHE_CHUNK_SIZE = lmcache_chunk_size
         self.ALWAYS_HIT_IN_CPU = always_hit_in_cpu
-        self.TOKEN_KV_SIZE = token_kv_size
         self.INPUT_TOKENS = input_tokens if input_tokens is not None else chunk_size
         self.OUTPUT_TOKENS = output_tokens
         self.LEN_WORD = len_word
         self.NUM_ITERATIONS = num_iterations
-        self.WITH_STORAGE = with_storage
         self.GPU_MEM_UTILIZATION_RATIO = gpu_mem_utilization_ratio
         self.GPU_MEM = gpu_mem
         self.TP = tp
-        self.SESSIONS = sessions
+        self.CONVERSATIONS = conversations,
+        self.STEPS = steps,
+
         self.statistics = Statisics(self)
         self.terminate = False
         self.sampling_params, self.engine = self.create_engine(self.global_configure()) 
@@ -182,14 +181,14 @@ class VLLM_BENCHMARK:
         tokenizer = self.engine.engine.get_tokenizer()
 
         # Get prompts
-        prompts_filename = f"prompts_async.{self.INPUT_TOKENS}.{self.LEN_WORD}.{self.SESSIONS}"
-        if os.path.exists(prompts_filename):
+        prompts_filename = f"prompts_async.{self.INPUT_TOKENS}.{self.LEN_WORD}.{self.CONVERSATIONS}.{self.STEPS}"
+        if os.path.exists(prompts_filename) and 1==0:
             print(f"Loading prompts from {prompts_filename}")
             with open(prompts_filename, 'rb') as f:
                 prompts = pickle.load(f)
         else:
             print(f"Generating new prompts and saving to {prompts_filename}")
-            prompts = [{"req" : self.get_rand_req(self.INPUT_TOKENS, self.LEN_WORD, tokenizer), "keys" : []} for _ in range(self.SESSIONS)]
+            prompts = [{"req" : self.get_rand_req(self.INPUT_TOKENS, self.LEN_WORD, tokenizer), "keys" : []} for _ in range(self.CONVERSATIONS * self.STEPS)]
             with open(prompts_filename, 'wb') as f:
                 pickle.dump(prompts, f)
         return prompts
@@ -198,29 +197,31 @@ class VLLM_BENCHMARK:
         async for output in self.engine.generate(req, sampling_params=self.sampling_params, request_id=indx):
             pass 
 
-    async def enter_new_request(self, p, indx):
+    async def enter_new_request(self, pp, indx):
         import time
         start_time = time.time()
-        if global_vars.backend:
-            self.statistics.curr_disk_inflights += 1
-            for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
-                if mem_obj:
-                    global_vars.backend.add_to_prefetched(p['keys'][i], mem_obj) 
-            self.statistics.curr_disk_inflights -= 1
-        self.statistics.curr_llm_inflights += 1
-        
-        print(f"{BOLD_RED}STARTING ASYNC EXECUTION INDX {indx}{RESET}")
-        await self.execute_single_request_in_llm(p["req"], indx)
-        print(f"{BOLD_RED}FINISHING ASYNC EXECUTION INDX {indx} {RESET}")
+        for p in pp:
+            if global_vars.backend:
+                self.statistics.curr_disk_inflights += 1
+                for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
+                    if mem_obj:
+                        global_vars.backend.add_to_prefetched(p['keys'][i], mem_obj) 
+                self.statistics.curr_disk_inflights -= 1
+            self.statistics.curr_llm_inflights += 1
+            
+            print(f"{BOLD_RED}STARTING ASYNC EXECUTION INDX {indx}{RESET}")
+            await self.execute_single_request_in_llm(p["req"], indx)
+            print(f"{BOLD_RED}FINISHING ASYNC EXECUTION INDX {indx} {RESET}")
 
-        if global_vars.backend:
-            for key in p['keys']:
-                global_vars.backend.remove_from_prefteched(key) 
-        self.statistics.curr_llm_inflights -= 1
-        
-        end_time = time.time()
-        execution_time = end_time - start_time
-        print(f"enter_new_request (index {indx}) took {execution_time:.4f} seconds")
+            if global_vars.backend:
+                for key in p['keys']:
+                    global_vars.backend.remove_from_prefteched(key) 
+            self.statistics.curr_llm_inflights -= 1
+            
+            end_time = time.time()
+            execution_time = end_time - start_time
+            print(f"enter_new_request (index {indx}) took {execution_time:.4f} seconds")
+
 
     async def add_hash_keys_to_prompts(self, prompts):
         #get the keys for each prompt
@@ -261,9 +262,15 @@ class VLLM_BENCHMARK:
             f.write(f"{stats_entry}\n")
         
     async def run_benchmark(self, MAX_INFLGITHS, NUM_ITERATIONS):
-        prompts = self.create_prompts()
-        await self.add_hash_keys_to_prompts(prompts)
-        
+        raw_prompts = self.create_prompts()
+        await self.add_hash_keys_to_prompts(raw_prompts)
+        prompts = []
+        for i in range(len(raw_prompts)):
+            if i % self.STEPS == 0:
+                raw_prompts.append(list())
+            aggr = '' if i % self.STEPS == 0 else prompts[-1][-1]
+            prompts[-1].append(aggr + raw_prompts[i]) 
+
         running, inflights = set(), 0
         start_time = time.time() 
         
