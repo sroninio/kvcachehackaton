@@ -31,7 +31,7 @@ class Statisics:
         self.reset()
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         timestamp_str = timestamp.replace(" ", "_").replace(":", "-")
-        self.filename = f"statistics_{timestamp_str}_tp_{test.TP}_chunk{test.CHUNK_SIZE}_input{test.INPUT_TOKENS}_output{test.OUTPUT_TOKENS}_sessions{test.SESSIONS}"
+        self.filename = f"statistics_{timestamp_str}_tp_{test.TP}_chunk{test.CHUNK_SIZE}_input{test.INPUT_TOKENS}_output{test.OUTPUT_TOKENS}_sessions{test.CONVERSATIONS}_steps{test.STEPS}"
 
     def reset(self):
         self.curr_disk_inflights = 0
