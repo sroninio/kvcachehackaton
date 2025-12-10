@@ -199,8 +199,11 @@ class VLLM_BENCHMARK:
 
     async def enter_new_request(self, pp, indx):
         import time
-        start_time = time.time()
-        for p in pp:
+        global_start_time = time.time()
+        
+        for step_idx, p in enumerate(pp):
+            step_start_time = time.time()
+            
             if global_vars.backend:
                 self.statistics.curr_disk_inflights += 1
                 for i, mem_obj in enumerate(await global_vars.backend.prefetch_async(p['keys'])):
@@ -209,18 +212,20 @@ class VLLM_BENCHMARK:
                 self.statistics.curr_disk_inflights -= 1
             self.statistics.curr_llm_inflights += 1
             
-            print(f"{BOLD_RED}STARTING ASYNC EXECUTION INDX {indx}{RESET}")
+            print(f"{BOLD_RED}STARTING ASYNC EXECUTION INDX {indx} STEP {step_idx}{RESET}")
             await self.execute_single_request_in_llm(p["req"], indx)
-            print(f"{BOLD_RED}FINISHING ASYNC EXECUTION INDX {indx} {RESET}")
+            print(f"{BOLD_RED}FINISHING ASYNC EXECUTION INDX {indx} STEP {step_idx}{RESET}")
 
             if global_vars.backend:
                 for key in p['keys']:
                     global_vars.backend.remove_from_prefteched(key) 
             self.statistics.curr_llm_inflights -= 1
             
-            end_time = time.time()
-            execution_time = end_time - start_time
-            print(f"enter_new_request (index {indx}) took {execution_time:.4f} seconds")
+            step_time = time.time() - step_start_time
+            print(f"{BRIGHT_YELLOW}STEP {step_idx} (REQUEST {indx}) TOOK {step_time:.4f} SECONDS{RESET}")
+        
+        global_time = time.time() - global_start_time
+        print(f"{BRIGHT_GREEN}TOTAL CONVERSATION (REQUEST {indx}) TOOK {global_time:.4f} SECONDS{RESET}")
 
 
     async def add_hash_keys_to_prompts(self, prompts):
