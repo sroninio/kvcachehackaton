@@ -32,7 +32,7 @@ class Statisics:
         self.reset()
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         timestamp_str = timestamp.replace(" ", "_").replace(":", "-")
-        self.filename = f"statistics_{timestamp_str}_tp_{test.TP}_chunk{test.CHUNK_SIZE}_input{test.INPUT_TOKENS}_output{test.OUTPUT_TOKENS}_sessions{test.CONVERSATIONS}_steps{test.STEPS}"
+        self.filename = f"statistics_{timestamp_str}_tp_{test.TP}_chunk{test.CHUNK_SIZE}_input{test.KVC_LEN_TOKENS}_output{test.OUTPUT_TOKENS}_conversations{test.CONVERSATIONS}_steps{test.STEPS}_isl{test.ISL_LEN_TOKENS}"
 
     def reset(self):
         self.curr_disk_inflights = 0
@@ -65,7 +65,7 @@ class VLLM_BENCHMARK:
                  #chunk_size= 3 * 32 * 1024 + 1024,
                  chunk_size= 32 * 1024,
                  lmcache_chunk_size=32 * 1024,
-                 input_tokens=32 * 1024,
+                 kvc_len_tokens=32 * 1024,
                  output_tokens=1,
                  len_word=6,
                  num_iterations=50,
@@ -74,7 +74,8 @@ class VLLM_BENCHMARK:
                  gpu_mem=80 * 1024 * 1024 * 1024,
                  tp=1,
                  conversations=1,
-                 steps = 1
+                 steps = 1,
+                 isl_len_tokens = 1024
                  ):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
@@ -84,7 +85,7 @@ class VLLM_BENCHMARK:
         self.CHUNK_SIZE = chunk_size
         self.LMCACHE_CHUNK_SIZE = lmcache_chunk_size
         self.ALWAYS_HIT_IN_CPU = always_hit_in_cpu
-        self.INPUT_TOKENS = input_tokens if input_tokens is not None else chunk_size
+        self.KVC_LEN_TOKENS = kvc_len_tokens if kvc_len_tokens is not None else chunk_size
         self.OUTPUT_TOKENS = output_tokens
         self.LEN_WORD = len_word
         self.NUM_ITERATIONS = num_iterations
@@ -93,6 +94,7 @@ class VLLM_BENCHMARK:
         self.TP = tp
         self.CONVERSATIONS = conversations
         self.STEPS = steps
+        self.ISL_LEN_TOKENS = isl_len_tokens
 
         self.statistics = Statisics(self)
         self.terminate = False
@@ -177,19 +179,43 @@ class VLLM_BENCHMARK:
         ) 
         return sampling_params, engine
 
+    def create_isls(self, kvcs, num_isls):
+        tokenizer = self.engine.engine.get_tokenizer() 
+        isls = []
+        for _ in range(num_isls):
+            while True:
+                valid = True
+                isl = self.get_rand_req(self.ISL_LEN_TOKENS, self.LEN_WORD, tokenizer)
+                for kvc in kvcs:
+                    final_req = kvc + " " + isl
+                    if tokenizer.encode(final_req) != tokenizer.encode(kvc) + tokenizer.encode(isl):
+                        print(f"{BOLD_RED}KVC+ISL tokens are different than KVC tokens + ISL tokens{RESET}")
+                        valid = False
+                        break
+                if valid:
+                    isls.append(isl)
+                    break
+        return isls
+
+                    
+
+                
+
+
+
     def create_prompts(self):
         # Get tokenizer
         tokenizer = self.engine.engine.get_tokenizer()
 
         # Get prompts
-        prompts_filename = f"prompts_async.{self.INPUT_TOKENS}.{self.LEN_WORD}.{self.CONVERSATIONS}.{self.STEPS}"
+        prompts_filename = f"prompts_async.{self.KVC_LEN_TOKENS}.{self.LEN_WORD}.{self.CONVERSATIONS}.{self.STEPS}"
         if os.path.exists(prompts_filename) and 1==0:
             print(f"Loading prompts from {prompts_filename}")
             with open(prompts_filename, 'rb') as f:
                 prompts = pickle.load(f)
         else:
             print(f"Generating new prompts and saving to {prompts_filename}")
-            prompts = [{"req" : self.get_rand_req(self.INPUT_TOKENS, self.LEN_WORD, tokenizer), "keys" : []} for _ in range(self.CONVERSATIONS * self.STEPS)]
+            prompts = [{"req" : self.get_rand_req(self.KVC_LEN_TOKENS, self.LEN_WORD, tokenizer), "keys" : []} for _ in range(self.CONVERSATIONS * self.STEPS)]
             with open(prompts_filename, 'wb') as f:
                 pickle.dump(prompts, f)
         return prompts
@@ -198,7 +224,7 @@ class VLLM_BENCHMARK:
         async for output in self.engine.generate(req, sampling_params=self.sampling_params, request_id=indx):
             pass 
 
-    async def enter_new_request(self, pp, indx):
+    async def enter_new_request(self, pp, isls, indx):
         import time
         global_start_time = time.time()
         
@@ -217,7 +243,7 @@ class VLLM_BENCHMARK:
             print(f"{BOLD_RED}{msg}{RESET}")
             log_to_pid_file(msg)
             
-            await self.execute_single_request_in_llm(p["req"], indx)
+            await self.execute_single_request_in_llm(p["req"] + " " + isls[indx-1], indx)
             
             msg = f"FINISHING ASYNC EXECUTION INDX {indx} STEP {step_idx}"
             print(f"{BOLD_RED}{msg}{RESET}")
@@ -291,13 +317,14 @@ class VLLM_BENCHMARK:
 
     async def run_benchmark(self, MAX_INFLGITHS, NUM_ITERATIONS):
         raw_prompts = self.create_prompts()
+        isls = self.create_isls([r['req'] for r in raw_prompts], NUM_ITERATIONS)
         await self.add_hash_keys_to_prompts(raw_prompts)
         prompts = self.convert_promts_to_conversations(raw_prompts)
         running, inflights = set(), 0
         start_time = time.time() 
         
         for i in range(1, NUM_ITERATIONS):
-            running.add(asyncio.create_task(self.enter_new_request(prompts[i % len(prompts)], i)))
+            running.add(asyncio.create_task(self.enter_new_request(prompts[i % len(prompts)], isls, i)))
             inflights += 1
             if inflights == MAX_INFLGITHS:
                 done, running = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
