@@ -16,6 +16,7 @@ from lmcache.experimental.config import LMCacheEngineConfig
 import asyncio
 from vllm.engine.async_llm_engine import AsyncLLMEngine, AsyncEngineArgs
 from vllm.usage.usage_lib import UsageContext
+from lmcache.logging import log_to_pid_file
 import datetime
 
 # ANSI escape codes for colors
@@ -212,9 +213,15 @@ class VLLM_BENCHMARK:
                 self.statistics.curr_disk_inflights -= 1
             self.statistics.curr_llm_inflights += 1
             
-            print(f"{BOLD_RED}STARTING ASYNC EXECUTION INDX {indx} STEP {step_idx}{RESET}")
+            msg = f"STARTING ASYNC EXECUTION INDX {indx} STEP {step_idx}"
+            print(f"{BOLD_RED}{msg}{RESET}")
+            log_to_pid_file(msg)
+            
             await self.execute_single_request_in_llm(p["req"], indx)
-            print(f"{BOLD_RED}FINISHING ASYNC EXECUTION INDX {indx} STEP {step_idx}{RESET}")
+            
+            msg = f"FINISHING ASYNC EXECUTION INDX {indx} STEP {step_idx}"
+            print(f"{BOLD_RED}{msg}{RESET}")
+            log_to_pid_file(msg)
 
             if global_vars.backend:
                 for key in p['keys']:
@@ -222,10 +229,14 @@ class VLLM_BENCHMARK:
             self.statistics.curr_llm_inflights -= 1
             
             step_time = time.time() - step_start_time
-            print(f"{BRIGHT_YELLOW}STEP {step_idx} (REQUEST {indx}) TOOK {step_time:.4f} SECONDS{RESET}")
+            msg = f"STEP {step_idx} (REQUEST {indx}) TOOK {step_time:.4f} SECONDS"
+            print(f"{BRIGHT_YELLOW}{msg}{RESET}")
+            log_to_pid_file(msg)
         
         global_time = time.time() - global_start_time
-        print(f"{BRIGHT_GREEN}TOTAL CONVERSATION (REQUEST {indx}) TOOK {global_time:.4f} SECONDS{RESET}")
+        msg = f"TOTAL CONVERSATION (REQUEST {indx}) TOOK {global_time:.4f} SECONDS"
+        print(f"{BRIGHT_GREEN}{msg}{RESET}")
+        log_to_pid_file(msg)
 
 
     async def add_hash_keys_to_prompts(self, prompts):
