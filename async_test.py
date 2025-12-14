@@ -32,7 +32,7 @@ class Statisics:
         self.reset()
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         timestamp_str = timestamp.replace(" ", "_").replace(":", "-")
-        self.filename = f"statistics_{timestamp_str}_tp_{test.TP}_chunk{test.CHUNK_SIZE}_input{test.KVC_LEN_TOKENS}_output{test.OUTPUT_TOKENS}_conversations{test.CONVERSATIONS}_steps{test.STEPS}_isl{test.ISL_LEN_TOKENS}"
+        self.filename = f"statistics_{timestamp_str}_tp_{test.TP}_chunk{test.CHUNK_SIZE}_input{test.KVC_LEN_TOKENS}_output{test.OUTPUT_TOKENS}_conversations{test.CONVERSATIONS}_steps{test.STEPS}_isl_ranging"
 
     def reset(self):
         self.curr_disk_inflights = 0
@@ -73,7 +73,6 @@ class VLLM_BENCHMARK:
                  tp=1,
                  conversations=1,
                  steps = 1,
-                 isl_len_tokens = 1024,
                  model_path = "/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct" 
                  ):
         # Configuration constants
@@ -91,7 +90,7 @@ class VLLM_BENCHMARK:
         self.TP = tp
         self.CONVERSATIONS = conversations
         self.STEPS = steps
-        self.ISL_LEN_TOKENS = isl_len_tokens
+        self.ISL_LEN_TOKENS = -1 
         self.MODEL_PATH = model_path
 
         
@@ -244,7 +243,9 @@ class VLLM_BENCHMARK:
                 "avg_disk_inflights": round(avg_disk_inflights, 2),
                 "avg_llm_inflights": round(avg_llm_inflights, 2),
                 "disk_samples": disk_samples,
-                "llm_samples": llm_samples
+                "llm_samples": llm_samples,
+                "isl": self.ISL_LEN_TOKENS,
+                'kvc': self.KVC_LEN_TOKENS
             }
         }
         # Append to statistics file
@@ -296,13 +297,15 @@ class VLLM_BENCHMARK:
 async def main():
     benchmark = VLLM_BENCHMARK()
     for inflights in [1]:
-        print(f"{BOLD_RED}STARTING ITERATION WITH {inflights} INFLIGHTS {RESET}")
-        benchmark.statistics.reset()
-        benchmark.terminate = False
-        benchmark.stat_task = asyncio.create_task(benchmark.update_statistics()) 
-        await benchmark.run_benchmark(inflights, inflights * 5)
-        benchmark.terminate = True
-        await benchmark.stat_task
+        for isl in [1, 64, 128, 512, 1024, 2048, 4096, 8192]:
+            print(f"{BOLD_RED}STARTING ITERATION WITH {inflights} INFLIGHTS and ISL {isl} {RESET}")
+            benchmark.ISL_LEN_TOKENS = isl
+            benchmark.statistics.reset()
+            benchmark.terminate = False
+            benchmark.stat_task = asyncio.create_task(benchmark.update_statistics()) 
+            await benchmark.run_benchmark(inflights, inflights * 5)
+            benchmark.terminate = True
+            await benchmark.stat_task
     
 
 
