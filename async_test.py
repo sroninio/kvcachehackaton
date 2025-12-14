@@ -67,15 +67,14 @@ class VLLM_BENCHMARK:
                  lmcache_chunk_size=32 * 1024,
                  kvc_len_tokens=32 * 1024,
                  output_tokens=1,
-                 len_word=6,
                  num_iterations=50,
                  always_hit_in_cpu = False,
                  gpu_mem_utilization_ratio=0.6,
-                 gpu_mem=80 * 1024 * 1024 * 1024,
                  tp=1,
                  conversations=1,
                  steps = 1,
-                 isl_len_tokens = 1024
+                 isl_len_tokens = 1024,
+                 model_path = "/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct" 
                  ):
         # Configuration constants
         self.MAX_LOCAL_CPU_SIZE = max_local_cpu_size
@@ -87,45 +86,26 @@ class VLLM_BENCHMARK:
         self.ALWAYS_HIT_IN_CPU = always_hit_in_cpu
         self.KVC_LEN_TOKENS = kvc_len_tokens if kvc_len_tokens is not None else chunk_size
         self.OUTPUT_TOKENS = output_tokens
-        self.LEN_WORD = len_word
         self.NUM_ITERATIONS = num_iterations
         self.GPU_MEM_UTILIZATION_RATIO = gpu_mem_utilization_ratio
-        self.GPU_MEM = gpu_mem
         self.TP = tp
         self.CONVERSATIONS = conversations
         self.STEPS = steps
         self.ISL_LEN_TOKENS = isl_len_tokens
+        self.MODEL_PATH = model_path
 
+        
+ 
         self.statistics = Statisics(self)
         self.terminate = False
         self.sampling_params, self.engine = self.create_engine(self.global_configure()) 
+        self.vocab_size = self.engine.engine.get_tokenizer().vocab_size 
 
 
-    def count_tokens(self, text, tokenizer):
-        tokens = tokenizer.encode(text)
-        return len(tokens)
+    def get_rand_req(self, n):
+        """Generate a random list of n token IDs from 0 to vocab_size-1."""
+        return [random.randint(0, self.vocab_size - 1) for _ in range(n)]
 
-    def get_rand_req(self, n, l, tokenizer):
-        while True:
-            word = ''.join(random.choices(string.ascii_lowercase, k=6))
-            req = word + " " + "hi " * (n-10)
-            while self.count_tokens(req, tokenizer) < n:
-                req += "hi"
-            if self.count_tokens(req, tokenizer) == n:
-                print("Finished creating rand request")
-                return req
-
-    def get_rand_req2(self, n, l, tokenizer):
-        print("Starting creating rand request")
-        req = "hi"
-        while self.count_tokens(req, tokenizer) < (n - 1000):
-            req += " ".join([''.join(random.choices(string.ascii_letters, k=l)) for _ in range(240)])
-        while self.count_tokens(req, tokenizer) < n:
-            req += "hi"
-        if self.count_tokens(req, tokenizer) != n:
-            raise Exception("couldnt generate good input sequence")
-        print("Finished creating rand request")
-        return req
 
     def global_configure(self):
         sys.path.append('/workspace/external')
@@ -160,7 +140,7 @@ class VLLM_BENCHMARK:
         )
 
         engine_args = AsyncEngineArgs(
-            model="/workspace/llm_models/llama-3.1-model/Llama-3.1-8B-Instruct",
+            model=self.MODEL_PATH,
             kv_transfer_config=KVTransferConfig(
                 kv_connector="LMCacheConnector",
                 kv_role="kv_both",
@@ -177,51 +157,19 @@ class VLLM_BENCHMARK:
             engine_args, 
             usage_context=UsageContext.LLM_CLASS
         ) 
+        
         return sampling_params, engine
 
-    def create_isls(self, kvcs, num_isls):
-        tokenizer = self.engine.engine.get_tokenizer() 
-        isls = []
-        for _ in range(num_isls):
-            while True:
-                valid = True
-                isl = self.get_rand_req(self.ISL_LEN_TOKENS, self.LEN_WORD, tokenizer)
-                for kvc in kvcs:
-                    final_req = kvc + " " + isl
-                    if tokenizer.encode(final_req) != tokenizer.encode(kvc) + tokenizer.encode(isl):
-                        print(f"{BOLD_RED}KVC+ISL tokens are different than KVC tokens + ISL tokens{RESET}")
-                        valid = False
-                        break
-                if valid:
-                    isls.append(isl)
-                    break
-        return isls
-
-                    
-
-                
-
-
+    def create_isls(self, num_isls):
+        return [self.get_rand_req(self.ISL_LEN_TOKENS) for _ in range(num_isls)]
 
     def create_prompts(self):
-        # Get tokenizer
-        tokenizer = self.engine.engine.get_tokenizer()
-
-        # Get prompts
-        prompts_filename = f"prompts_async.{self.KVC_LEN_TOKENS}.{self.LEN_WORD}.{self.CONVERSATIONS}.{self.STEPS}"
-        if os.path.exists(prompts_filename) and 1==0:
-            print(f"Loading prompts from {prompts_filename}")
-            with open(prompts_filename, 'rb') as f:
-                prompts = pickle.load(f)
-        else:
-            print(f"Generating new prompts and saving to {prompts_filename}")
-            prompts = [{"req" : self.get_rand_req(self.KVC_LEN_TOKENS, self.LEN_WORD, tokenizer), "keys" : []} for _ in range(self.CONVERSATIONS * self.STEPS)]
-            with open(prompts_filename, 'wb') as f:
-                pickle.dump(prompts, f)
+        prompts = [{"req" : self.get_rand_req(self.KVC_LEN_TOKENS), "keys" : []} for _ in range(self.CONVERSATIONS * self.STEPS)]
         return prompts
 
     async def execute_single_request_in_llm(self,  req,  indx):
-        async for output in self.engine.generate(req, sampling_params=self.sampling_params, request_id=indx):
+        prompt = {"prompt_token_ids": req}
+        async for output in self.engine.generate(prompt, sampling_params=self.sampling_params, request_id=indx):
             pass 
 
     async def enter_new_request(self, pp, isls, indx):
@@ -243,7 +191,7 @@ class VLLM_BENCHMARK:
             print(f"{BOLD_RED}{msg}{RESET}")
             log_to_pid_file(msg)
             
-            await self.execute_single_request_in_llm(p["req"] + " " + isls[indx-1], indx)
+            await self.execute_single_request_in_llm(p["req"] + isls[indx-1], indx)
             
             msg = f"FINISHING ASYNC EXECUTION INDX {indx} STEP {step_idx}"
             print(f"{BOLD_RED}{msg}{RESET}")
@@ -303,7 +251,7 @@ class VLLM_BENCHMARK:
         with open(self.statistics.filename, "a") as f:
             f.write(f"{stats_entry}\n")
         
-    def convert_promts_to_conversations(self, raw_prompts):
+    def convert_prompts_to_conversations(self, raw_prompts):
         prompts = []
         for i in range(len(raw_prompts)):
             if i % self.STEPS == 0:
@@ -317,9 +265,9 @@ class VLLM_BENCHMARK:
 
     async def run_benchmark(self, MAX_INFLGITHS, NUM_ITERATIONS):
         raw_prompts = self.create_prompts()
-        isls = self.create_isls([r['req'] for r in raw_prompts], NUM_ITERATIONS)
+        isls = self.create_isls(NUM_ITERATIONS)
         await self.add_hash_keys_to_prompts(raw_prompts)
-        prompts = self.convert_promts_to_conversations(raw_prompts)
+        prompts = self.convert_prompts_to_conversations(raw_prompts)
         running, inflights = set(), 0
         start_time = time.time() 
         
