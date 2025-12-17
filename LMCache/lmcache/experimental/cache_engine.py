@@ -283,7 +283,13 @@ class LMCacheEngine:
             num_tokens = end - start
             kv_shape = self.gpu_connector.get_shape(num_tokens)
             kv_dtype = self.metadata.kv_dtype
+
             memory_obj = self.storage_manager.allocate(kv_shape, kv_dtype)
+            
+            if memory_obj is not None:
+                size_in_bytes = memory_obj.get_size()
+                log_to_pid_file(f"CacheEngine::store allocated {size_in_bytes:,} bytes ({size_in_bytes / (1024**2):.2f} MB) for {num_tokens} tokens")
+            
             if memory_obj is None:
                 log_to_pid_file("Failed to allocate memory for the KV cache.\n"
                                "The KV cache will not be stored.")
