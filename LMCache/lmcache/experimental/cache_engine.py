@@ -128,8 +128,6 @@ class LMCacheEngine:
 
         InitializeUsageContext(config.to_original_config(), metadata)
         self.stats_monitor = LMCStatsMonitor.GetOrCreate()
-        if config.always_hit_in_cpu:
-            self.dummy_tensor = self.storage_manager.allocate(self.gpu_connector.get_shape(32768), self.metadata.kv_dtype)
 
     @_lmcache_nvtx_annotate
     @torch.inference_mode()
@@ -143,10 +141,6 @@ class LMCacheEngine:
 
         This function will be refactored in the future.
         """
-        if self.config.always_hit_in_cpu:
-            log_to_pid_file("I am in store thought shouldnt be her")
-            exit(1)
-
         st = time.perf_counter()
         if mask is not None:
             monitor_req_id = self.stats_monitor.on_store_request(
@@ -238,10 +232,6 @@ class LMCacheEngine:
             multiple of the chunk size.
         """
         # import pdb; pdb.set_trace()
-
-        if self.config.always_hit_in_cpu:
-            log_to_pid_file("I am in store thought shouldnt be her")
-            exit(1)
 
         log_to_pid_file(f"LMCacheEngine::store number of tokens to store: {len(tokens)}")
         log_to_pid_file(f"LMCacheEngine::store mask sum is: {torch.sum(mask).item()}")
@@ -347,6 +337,13 @@ class LMCacheEngine:
 
         ret_mask = torch.zeros_like(tokens, dtype=torch.bool, device="cpu")
 
+        if self.config.highest_token_id_to_mark_as_found > 0:
+            for token_indx, token in enumerate(tokens):
+                if token <= self.config.highest_token_id_to_mark_as_found:
+                    ret_mask[token_indx] = True if mask is None else mask[token_indx]
+                else:
+                    break 
+            return ret_mask            
     
         for start, end, key in self.token_database.process_tokens(
                 tokens, mask):
@@ -354,7 +351,7 @@ class LMCacheEngine:
             assert isinstance(key, CacheEngineKey)
 
             # Get the memory object from the storage backend
-            memory_obj = self.dummy_tensor if self.config.always_hit_in_cpu else self.storage_manager.get(key)
+            memory_obj = self.storage_manager.get(key)
 
             if memory_obj is None:
                 if self.enable_p2p:
@@ -373,13 +370,12 @@ class LMCacheEngine:
             # RDMA is another example.
             #breakpoint()
             self.gpu_connector.to_gpu(memory_obj, start, end, **kwargs)
-            if not self.config.always_hit_in_cpu:
-                self.memory_allocator.ref_count_down(memory_obj)
+            self.memory_allocator.ref_count_down(memory_obj)
 
             # NOTE (ApostaC): This is only for the current implementation:
             # When the object is retrieved back to vLLM, the storage backend
             # will immediately remove the object from itself
-            if isinstance(self.storage_manager, DistributedStorageManager) and not self.config.always_hit_in_cpu:
+            if isinstance(self.storage_manager, DistributedStorageManager):
                 self.storage_manager.remove(key)
         retrieved_tokens = torch.sum(ret_mask)
 
@@ -400,14 +396,36 @@ class LMCacheEngine:
         """
         
         log_to_pid_file(f"LMCacheEngine::prefetch number of tokens to prefetch: {len(tokens)}")
-        if self.config.always_hit_in_cpu:
-            log_to_pid_file("I am in prefetch and I shouldnt be here")
-            exit(1)
-
         for start, end, key in self.token_database.process_tokens(
                 tokens, mask):
             assert isinstance(key, CacheEngineKey)
             self.storage_manager.prefetch(key)
+
+    def _count_tokens_up_to_threshold(
+        self,
+        tokens: Union[torch.Tensor, List[int]],
+        threshold: int,
+    ) -> int:
+        """
+        Counts the number of tokens <= threshold using binary search.
+        Assumes tokens are partitioned: all tokens before some point are <= threshold,
+        all tokens after are > threshold.
+        
+        :param tokens: Input tokens (tensor or list)
+        :param threshold: The token ID threshold
+        :return: Number of tokens <= threshold
+        """
+        if not isinstance(tokens, torch.Tensor):
+            tokens = torch.tensor(tokens)
+        
+        num_matching = torch.searchsorted(
+            tokens, 
+            threshold, 
+            right=True
+        ).item()
+        
+        log_to_pid_file(f"LMCacheEngine::_count_tokens_up_to_threshold found {num_matching} tokens <= {threshold}")
+        return num_matching
 
     # TODO(Jiayi): Currently, search_range is only used for testing.
     def lookup(
@@ -428,11 +446,16 @@ class LMCacheEngine:
         """
         log_to_pid_file(f"LMCacheEngine::lookup number of tokens to lookup: {len(tokens)}")
 
+        if self.config.highest_token_id_to_mark_as_found > 0:
+            return self._count_tokens_up_to_threshold(
+                tokens, 
+                self.config.highest_token_id_to_mark_as_found
+            )
 
         end = 0
         for start, end, key in self.token_database.process_tokens(tokens):
             assert isinstance(key, CacheEngineKey)
-            if not self.config.always_hit_in_cpu and not self.storage_manager.contains(key, search_range):
+            if not self.storage_manager.contains(key, search_range):
                 log_to_pid_file(f"LMCacheEngine::lookup returned {start}")
                 return start
         log_to_pid_file(f"LMCacheEngine::lookup returned {end}")

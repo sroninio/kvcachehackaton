@@ -68,7 +68,7 @@ class VLLM_BENCHMARK:
                  kvc_len_tokens=32 * 1024,
                  output_tokens=1,
                  num_iterations=50,
-                 always_hit_in_cpu = False,
+                 fake_pipeline = False,
                  gpu_mem_utilization_ratio=0.6,
                  tp=1,
                  conversations=1,
@@ -82,7 +82,7 @@ class VLLM_BENCHMARK:
         self.LOCAL_DISK = local_disk
         self.CHUNK_SIZE = chunk_size
         self.LMCACHE_CHUNK_SIZE = lmcache_chunk_size
-        self.ALWAYS_HIT_IN_CPU = always_hit_in_cpu
+        self.FAKE_PIPELINE = fake_pipeline
         self.KVC_LEN_TOKENS = kvc_len_tokens if kvc_len_tokens is not None else chunk_size
         self.OUTPUT_TOKENS = output_tokens
         self.NUM_ITERATIONS = num_iterations
@@ -93,17 +93,21 @@ class VLLM_BENCHMARK:
         self.ISL_LEN_TOKENS = -1 
         self.MODEL_PATH = model_path
 
-        
+        # Load tokenizer first to get vocab_size (fast, no model loading)
+        from transformers import AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(self.MODEL_PATH)
+        self.vocab_size = tokenizer.vocab_size
+        self.max_kvc_token = self.vocab_size // 2
+        self.max_isl_token = self.vocab_size
  
         self.statistics = Statisics(self)
         self.terminate = False
         self.sampling_params, self.engine = self.create_engine(self.global_configure()) 
-        self.vocab_size = self.engine.engine.get_tokenizer().vocab_size 
 
 
-    def get_rand_req(self, n):
+    def get_rand_req(self, n, min_token, max_token):
         """Generate a random list of n token IDs from 0 to vocab_size-1."""
-        return [random.randint(0, self.vocab_size - 1) for _ in range(n)]
+        return [random.randint(min_token, max_token - 1) for _ in range(n)]
 
 
     def global_configure(self):
@@ -119,7 +123,7 @@ class VLLM_BENCHMARK:
         # Modify values
         config["is_rai"] = False
         config["chunk_size"] = self.LMCACHE_CHUNK_SIZE
-        config["always_hit_in_cpu"] = self.ALWAYS_HIT_IN_CPU
+        config["highest_token_id_to_mark_as_found"] = 0 if not self.FAKE_PIPELINE else self.max_kvc_token - 1 
         config["local_cpu"] = self.LOCAL_CPU
         config["local_disk"] = self.LOCAL_DISK
         config["max_local_disk_size"] = self.MAX_LOCAL_DISK_SIZE
@@ -160,10 +164,10 @@ class VLLM_BENCHMARK:
         return sampling_params, engine
 
     def create_isls(self, num_isls):
-        return [self.get_rand_req(self.ISL_LEN_TOKENS) for _ in range(num_isls)]
+        return [self.get_rand_req(self.ISL_LEN_TOKENS, self.max_kvc_token + 1, self.max_isl_token) for _ in range(num_isls)]
 
     def create_prompts(self):
-        prompts = [{"req" : self.get_rand_req(self.KVC_LEN_TOKENS), "keys" : []} for _ in range(self.CONVERSATIONS * self.STEPS)]
+        prompts = [{"req" : self.get_rand_req(self.KVC_LEN_TOKENS, 0, self.max_kvc_token), "keys" : []} for _ in range(self.CONVERSATIONS * self.STEPS)]
         return prompts
 
     async def execute_single_request_in_llm(self,  req,  indx):

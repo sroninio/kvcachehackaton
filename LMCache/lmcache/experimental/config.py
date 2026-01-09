@@ -63,7 +63,7 @@ class LMCacheEngineConfig:
     # HACK: explicit option to enable/disable nixl GC before it's mature enough
     nixl_enable_gc: Optional[bool] = False
     is_rai: Optional[bool] = False
-    always_hit_in_cpu : Optional[bool] = False
+    highest_token_id_to_mark_as_found : Optional[bool] = False
     
     @staticmethod
     def from_defaults(
@@ -216,7 +216,7 @@ class LMCacheEngineConfig:
         nixl_buffer_device = config.get("nixl_buffer_device", None)
         nixl_enable_gc = config.get("nixl_enable_gc", False)
         is_rai = config.get("is_rai", False)
-        always_hit_in_cpu = config.get("always_hit_in_cpu", False)
+        highest_token_id_to_mark_as_found = config.get("highest_token_id_to_mark_as_found", False)
         match local_disk:
             case None:
                 local_disk_path = None
@@ -261,7 +261,7 @@ class LMCacheEngineConfig:
             nixl_buffer_device,
             nixl_enable_gc,
             is_rai,
-            always_hit_in_cpu
+            highest_token_id_to_mark_as_found
         ).validate()
 
     @staticmethod

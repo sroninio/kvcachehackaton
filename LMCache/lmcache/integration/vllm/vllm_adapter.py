@@ -612,7 +612,7 @@ def lmcache_retrieve_kv(
             # NOTE: No need to retrieve from lmc if the number of tokens
             # to be retrieved is small
             lmc_chunk_size = engine.config.chunk_size
-            if (vllm_num_required_tokens < lmc_chunk_size) and not engine.config.always_hit_in_cpu:
+            if (vllm_num_required_tokens < lmc_chunk_size) and engine.config.highest_token_id_to_mark_as_found > 0:
                 num_computed_tokens_list.append(vllm_num_computed_tokens)
                 lmc_num_computed_tokens_list.append(0)
                 idx += 1

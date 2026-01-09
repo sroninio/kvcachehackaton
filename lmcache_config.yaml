@@ -1,4 +1,4 @@
-always_hit_in_cpu: false
+highest_token_id_to_mark_as_found: false
 chunk_size: 32768
 is_rai: false
 local_cpu: true
